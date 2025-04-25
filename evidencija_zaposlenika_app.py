@@ -200,16 +200,19 @@ def compute_leave(hire, invalidity, children, sole):
 
 def add_employee(data):
     try:
+        # Postavi datume na None ako pregledi nisu obavezni
+        last_phys = data['last_phys'] if data['phys_req'] else None
+        next_phys = data['next_phys'] if data['phys_req'] else None
+        last_psy = data['last_psy'] if data['psy_req'] else None
+        next_psy = data['next_psy'] if data['psy_req'] else None
+
         c.execute('''INSERT INTO employees
                      (name, hire_date, training_start_date, last_physical_date, last_psych_date,
                       next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
                       physical_required, psych_required)
                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
                   (data['name'], data['hire'], data['hire'], 
-                   data['last_phys'] if data['phys_req'] else None,
-                   data['last_psy'] if data['psy_req'] else None,
-                   data['next_phys'] if data['phys_req'] else None,
-                   data['next_psy'] if data['psy_req'] else None,
+                   last_phys, last_psy, next_phys, next_psy,
                    int(data['invalidity']), int(data['children']), int(data['sole']),
                    int(data['phys_req']), int(data['psy_req'])))
         emp_id = c.lastrowid
@@ -224,23 +227,33 @@ def add_employee(data):
         return False
 
 def edit_employee(emp_id, data):
-    c.execute('''UPDATE employees SET
-                 name=?, hire_date=?, training_start_date=?, last_physical_date=?, last_psych_date=?,
-                 next_physical_date=?, next_psych_date=?, invalidity=?, children_under15=?, sole_caregiver=?,
-                 physical_required=?, psych_required=?
-                 WHERE id=?''',
-              (data['name'], data['hire'], data['hire'], 
-               data['last_phys'] if data['phys_req'] else None,
-               data['last_psy'] if data['psy_req'] else None,
-               data['next_phys'] if data['phys_req'] else None,
-               data['next_psy'] if data['psy_req'] else None,
-               int(data['invalidity']), data['children'], int(data['sole']),
-               int(data['phys_req']), int(data['psy_req']), emp_id))
-    c.execute('DELETE FROM prev_jobs WHERE emp_id=?', (emp_id,))
-    for j in st.session_state.edit_jobs:
-        c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
-                  (emp_id, j['company'], j['start'], j['end']))
-    conn.commit()
+    try:
+        # Postavi datume na None ako pregledi nisu obavezni
+        last_phys = data['last_phys'] if data['phys_req'] else None
+        next_phys = data['next_phys'] if data['phys_req'] else None
+        last_psy = data['last_psy'] if data['psy_req'] else None
+        next_psy = data['next_psy'] if data['psy_req'] else None
+
+        c.execute('''UPDATE employees SET
+                     name=?, hire_date=?, training_start_date=?, last_physical_date=?, last_psych_date=?,
+                     next_physical_date=?, next_psych_date=?, invalidity=?, children_under15=?, sole_caregiver=?,
+                     physical_required=?, psych_required=?
+                     WHERE id=?''',
+                  (data['name'], data['hire'], data['hire'], 
+                   last_phys, last_psy, next_phys, next_psy,
+                   int(data['invalidity']), int(data['children']), int(data['sole']),
+                   int(data['phys_req']), int(data['psy_req']), emp_id))
+        
+        c.execute('DELETE FROM prev_jobs WHERE emp_id=?', (emp_id,))
+        for j in st.session_state.edit_jobs:
+            c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
+                      (emp_id, j['company'], j['start'], j['end']))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error editing employee: {e}")
+        conn.rollback()
+        return False
 
 def delete_employee(emp_id):
     c.execute('DELETE FROM employees WHERE id=?', (emp_id,))
@@ -425,32 +438,32 @@ def main():
                 phys_req = st.checkbox('Obavezan fizički pregled', value=bool(emp.get('physical_required', True)))
                 if phys_req:
                     last_phys = st.date_input('Zadnji fiz.',
-                                         value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date(),
+                                         value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date() if emp['last_physical_date'] else date.today(),
                                          min_value=date(1960,1,1),
                                          format="DD.MM.YYYY")
                     next_phys = st.date_input('Sljedeći fiz.',
-                                         value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date(),
+                                         value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else date.today(),
                                          min_value=date(1960,1,1),
                                          format="DD.MM.YYYY")
                 else:
-                    last_phys = datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date()
-                    next_phys = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date()
+                    last_phys = date.today()
+                    next_phys = date.today()
             
             with c4:
                 st.markdown('**Psihički pregled**')
                 psy_req = st.checkbox('Obavezan psihički pregled', value=bool(emp.get('psych_required', True)))
                 if psy_req:
                     last_psy = st.date_input('Zadnji psih.',
-                                        value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date(),
+                                        value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date() if emp['last_psych_date'] else date.today(),
                                         min_value=date(1960,1,1),
                                         format="DD.MM.YYYY")
                     next_psy = st.date_input('Sljedeći psih.',
-                                        value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date(),
+                                        value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else date.today(),
                                         min_value=date(1960,1,1),
                                         format="DD.MM.YYYY")
                 else:
-                    last_psy = datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date()
-                    next_psy = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date()
+                    last_psy = date.today()
+                    next_psy = date.today()
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
