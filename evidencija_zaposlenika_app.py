@@ -370,47 +370,11 @@ def main():
             start = st.date_input('Početak godišnjeg', None, format="DD.MM.YYYY")
             end = st.date_input('Kraj godišnjeg', None, format="DD.MM.YYYY")
             
-            # Checkbox-ovi za preglede
-            st.markdown('### Obavezni pregledi')
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                phys_req = st.checkbox('Obavezan fizički pregled')
-                if phys_req:
-                    next_phys = st.date_input('Datum sljedećeg fizičkog pregleda', 
-                                            None,
-                                            format="DD.MM.YYYY")
-            
-            with col2:
-                psy_req = st.checkbox('Obavezan psihički pregled')
-                if psy_req:
-                    next_psy = st.date_input('Datum sljedećeg psihičkog pregleda',
-                                           None,
-                                           format="DD.MM.YYYY")
-            
             submit_leave = st.form_submit_button('Spremi godišnji')
             
             if submit_leave:
                 if start and end:
                     add_leave_record(emp['id'], start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d'))
-                    
-                    # Ažuriraj datume pregleda ako su označeni
-                    if phys_req or psy_req:
-                        data = {
-                            'name': emp['name'],
-                            'hire': emp['hire_date'],
-                            'last_phys': emp['last_physical_date'],
-                            'last_psy': emp['last_psych_date'],
-                            'next_phys': next_phys.strftime('%Y-%m-%d') if phys_req else emp['next_physical_date'],
-                            'next_psy': next_psy.strftime('%Y-%m-%d') if psy_req else emp['next_psych_date'],
-                            'invalidity': emp['invalidity'],
-                            'children': emp['children_under15'],
-                            'sole': emp['sole_caregiver'],
-                            'phys_req': emp['physical_required'],
-                            'psy_req': emp['psych_required']
-                        }
-                        edit_employee(emp['id'], data)
-                    
                     st.success('Godišnji evidentiran')
                     st.session_state.leave_form_submitted = True
                     st.rerun()
@@ -466,7 +430,7 @@ def main():
         with st.form('emp_form'):
             name = st.text_input('Ime i prezime', value="")
             hire = st.date_input('Datum zaposlenja',
-                               value=date.today(),
+                               value=None,
                                min_value=date(1960,1,1),
                                format="DD.MM.YYYY")
             
@@ -475,34 +439,22 @@ def main():
             with c3:
                 st.markdown('**Fizički pregled**')
                 phys_req = st.checkbox('Obavezan fizički pregled', value=False)
+                next_phys = None
                 if phys_req:
-                    last_phys = st.date_input('Zadnji fiz.',
-                                         value=date.today(),
-                                         min_value=date(1960,1,1),
+                    next_phys = st.date_input('Sljedeći fizički pregled',
+                                         value=None,
+                                         min_value=date.today(),
                                          format="DD.MM.YYYY")
-                    next_phys = st.date_input('Sljedeći fiz.',
-                                         value=date.today(),
-                                         min_value=date(1960,1,1),
-                                         format="DD.MM.YYYY")
-                else:
-                    last_phys = None
-                    next_phys = None
             
             with c4:
                 st.markdown('**Psihički pregled**')
                 psy_req = st.checkbox('Obavezan psihički pregled', value=False)
+                next_psy = None
                 if psy_req:
-                    last_psy = st.date_input('Zadnji psih.',
-                                        value=date.today(),
-                                        min_value=date(1960,1,1),
+                    next_psy = st.date_input('Sljedeći psihički pregled',
+                                        value=None,
+                                        min_value=date.today(),
                                         format="DD.MM.YYYY")
-                    next_psy = st.date_input('Sljedeći psih.',
-                                        value=date.today(),
-                                        min_value=date(1960,1,1),
-                                        format="DD.MM.YYYY")
-                else:
-                    last_psy = None
-                    next_psy = None
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
@@ -520,14 +472,18 @@ def main():
             submit = st.form_submit_button('Spremi zaposlenika')
             
             if submit:
-                if not name:
-                    st.error('Molimo unesite ime i prezime')
+                if not name or not hire:
+                    st.error('Molimo unesite ime i datum zaposlenja')
+                elif phys_req and not next_phys:
+                    st.error('Molimo unesite datum sljedećeg fizičkog pregleda')
+                elif psy_req and not next_psy:
+                    st.error('Molimo unesite datum sljedećeg psihičkog pregleda')
                 else:
                     data = {
                         'name': name,
                         'hire': hire.strftime('%Y-%m-%d'),
-                        'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
-                        'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
+                        'last_phys': hire.strftime('%Y-%m-%d') if phys_req else None,
+                        'last_psy': hire.strftime('%Y-%m-%d') if psy_req else None,
                         'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
                         'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
                         'invalidity': invalidity,
