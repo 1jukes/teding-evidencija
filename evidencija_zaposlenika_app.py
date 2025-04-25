@@ -234,12 +234,22 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
 
 def delete_leave_record(emp_id, start_date, end_date, is_adjustment=False):
     if is_adjustment:
-        c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NOT NULL',
+        # Prvo dohvatimo vrijednost days_adjustment prije brisanja
+        c.execute('SELECT days_adjustment FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NOT NULL',
                   (emp_id, start_date, end_date))
+        result = c.fetchone()
+        if result:
+            # Brišemo zapis
+            c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NOT NULL',
+                      (emp_id, start_date, end_date))
+            conn.commit()
+            return True
     else:
         c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NULL',
                   (emp_id, start_date, end_date))
-    conn.commit()
+        conn.commit()
+        return True
+    return False
 
 def delete_prev_job(emp_id, company, start_date, end_date):
     c.execute('DELETE FROM prev_jobs WHERE emp_id=? AND company=? AND start_date=? AND end_date=?',
@@ -349,11 +359,16 @@ def main():
                 col1.write(f"- {txt} {abs(lr['adjustment'])} dana ({lr['start']}){note_text}")
             
             if col2.button('Obriši', key=f"del_leave_{idx}"):
+                success = False
                 if lr['adjustment'] is None:
-                    delete_leave_record(emp['id'], parse_date(lr['start']), parse_date(lr['end']), False)
+                    success = delete_leave_record(emp['id'], parse_date(lr['start']), parse_date(lr['end']), False)
                 else:
-                    delete_leave_record(emp['id'], lr['start'], lr['end'], True)
-                st.rerun()
+                    success = delete_leave_record(emp['id'], lr['start'], lr['end'], True)
+                if success:
+                    st.success('Zapis uspješno obrisan')
+                    st.rerun()
+                else:
+                    st.error('Greška prilikom brisanja zapisa')
         
         leave_allowance = compute_leave(emp['hire_date'], emp['invalidity'], 
                                       emp['children_under15'], emp['sole_caregiver'])
