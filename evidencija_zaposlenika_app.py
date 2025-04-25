@@ -4,7 +4,36 @@ import pandas as pd
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 import hashlib
+import locale
 import base64
+
+# Postavljanje hrvatskog lokalnog vremena
+try:
+    locale.setlocale(locale.LC_ALL, 'hr_HR.UTF-8')
+except:
+    try:
+        locale.setlocale(locale.LC_ALL, 'Croatian.UTF-8')
+    except:
+        locale.setlocale(locale.LC_ALL, '')
+
+# Funkcije za formatiranje datuma
+def format_date(date_str):
+    """Pretvara datum iz YYYY-MM-DD u DD.MM.YYYY format"""
+    if not date_str:
+        return ""
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%d.%m.%Y.')
+    except:
+        return date_str
+
+def parse_date(date_str):
+    """Pretvara datum iz DD.MM.YYYY u YYYY-MM-DD format za bazu"""
+    if not date_str:
+        return ""
+    try:
+        return datetime.strptime(date_str, '%d.%m.%Y.').strftime('%Y-%m-%d')
+    except:
+        return date_str
 
 # Konfiguracija stranice
 st.set_page_config(
@@ -102,13 +131,11 @@ def get_employees():
 
 def get_prev_jobs(emp_id):
     c.execute('SELECT company, start_date, end_date FROM prev_jobs WHERE emp_id=?', (emp_id,))
-    return [{'company':r[0],'start':r[1],'end':r[2]} for r in c.fetchall()]
+    return [{'company':r[0],'start':format_date(r[1]),'end':format_date(r[2])} for r in c.fetchall()]
 
 def get_leave_records(emp_id):
-    c.execute('''SELECT start_date, end_date, days_adjustment, note 
-                 FROM leave_records 
-                 WHERE emp_id=?''', (emp_id,))
-    return [{'start':r[0], 'end':r[1], 'adjustment':r[2], 'note':r[3]} for r in c.fetchall()]
+    c.execute('SELECT start_date, end_date, days_adjustment, note FROM leave_records WHERE emp_id=?', (emp_id,))
+    return [{'start':format_date(r[0]), 'end':format_date(r[1]), 'adjustment':r[2], 'note':r[3]} for r in c.fetchall()]
 
 # Business logic
 def compute_tenure(hire):
@@ -215,8 +242,8 @@ def main():
             rd_before = relativedelta()
             for j in get_prev_jobs(e['id']):
                 rd = relativedelta(
-                    datetime.strptime(j['end'],'%Y-%m-%d').date(),
-                    datetime.strptime(j['start'],'%Y-%m-%d').date())
+                    datetime.strptime(parse_date(j['end']),'%Y-%m-%d').date(),
+                    datetime.strptime(parse_date(j['start']),'%Y-%m-%d').date())
                 rd_before += rd
             rd_tot = rd_curr + rd_before
             leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'])
@@ -226,19 +253,19 @@ def main():
             used = 0
             for lr in leave_records:
                 if lr['adjustment'] is None:
-                    used += (datetime.strptime(lr['end'],'%Y-%m-%d').date() - 
-                            datetime.strptime(lr['start'],'%Y-%m-%d').date()).days + 1
+                    used += (datetime.strptime(parse_date(lr['end']),'%Y-%m-%d').date() - 
+                            datetime.strptime(parse_date(lr['start']),'%Y-%m-%d').date()).days + 1
                 else:
-                    used -= lr['adjustment']  # Oduzimamo jer želimo da pozitivna prilagodba poveća preostale dane
+                    used -= lr['adjustment']
             
             rem = leave - used
             phys = datetime.strptime(e['next_physical_date'],'%Y-%m-%d').date()
             psych = datetime.strptime(e['next_psych_date'],'%Y-%m-%d').date()
-            phys_str = phys.strftime('%Y-%m-%d') if 0 <= (phys-date.today()).days <=30 else ''
-            psych_str = psych.strftime('%Y-%m-%d') if 0 <= (psych-date.today()).days <=30 else ''
+            phys_str = format_date(phys.strftime('%Y-%m-%d')) if 0 <= (phys-date.today()).days <=30 else ''
+            psych_str = format_date(psych.strftime('%Y-%m-%d')) if 0 <= (psych-date.today()).days <=30 else ''
             rows.append({
                 'Ime':e['name'],
-                'Datum zapos.':e['hire_date'],
+                'Datum zapos.':format_date(e['hire_date']),
                 'Staž prije':format_rd(rd_before),
                 'Staž kod nas':format_rd(rd_curr),
                 'Ukupno staž':format_rd(rd_tot),
@@ -254,8 +281,8 @@ def main():
         emp = next(e for e in emps if e['name']==sel)
         
         st.subheader('Evidencija korištenja godišnjeg')
-        start = st.date_input('Početak godišnjeg',date.today())
-        end = st.date_input('Kraj godišnjeg',date.today())
+        start = st.date_input('Početak godišnjeg', date.today(), format="DD.MM.YYYY")
+        end = st.date_input('Kraj godišnjeg', date.today(), format="DD.MM.YYYY")
         if st.button('Spremi godišnji',key='save_leave'):
             add_leave_record(emp['id'],start.strftime('%Y-%m-%d'),end.strftime('%Y-%m-%d'))
             st.success('Godišnji evidentiran')
@@ -320,15 +347,30 @@ def main():
         with st.form('emp_form'):
             c1,c2,c3 = st.columns(3)
             name = c1.text_input('Ime i prezime',value=emp['name'])
-            hire = c2.date_input('Datum zaposlenja',value=datetime.strptime(emp['hire_date'],'%Y-%m-%d').date(),min_value=date(1960,1,1))
+            hire = c2.date_input('Datum zaposlenja',
+                               value=datetime.strptime(emp['hire_date'],'%Y-%m-%d').date(),
+                               min_value=date(1960,1,1),
+                               format="DD.MM.YYYY")
             invalidity = c3.checkbox('Invaliditet (+5)',value=bool(emp['invalidity']))
             c4,c5,c6 = st.columns(3)
-            last_phys = c4.date_input('Zadnji fiz.',value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date(),min_value=date(1960,1,1))
-            last_psy = c5.date_input('Zadnji psih.',value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date(),min_value=date(1960,1,1))
+            last_phys = c4.date_input('Zadnji fiz.',
+                                    value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date(),
+                                    min_value=date(1960,1,1),
+                                    format="DD.MM.YYYY")
+            last_psy = c5.date_input('Zadnji psih.',
+                                   value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date(),
+                                   min_value=date(1960,1,1),
+                                   format="DD.MM.YYYY")
             children = c6.number_input('Broj djece <15',min_value=0,value=int(emp['children_under15']))
             c7,c8,c9 = st.columns(3)
-            next_phys = c7.date_input('Sljedeći fiz.',value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date(),min_value=date(1960,1,1))
-            next_psy = c8.date_input('Sljedeći psih.',value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date(),min_value=date(1960,1,1))
+            next_phys = c7.date_input('Sljedeći fiz.',
+                                    value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date(),
+                                    min_value=date(1960,1,1),
+                                    format="DD.MM.YYYY")
+            next_psy = c8.date_input('Sljedeći psih.',
+                                   value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date(),
+                                   min_value=date(1960,1,1),
+                                   format="DD.MM.YYYY")
             sole = c9.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
             submit = st.form_submit_button('Spremi zaposlenika')
 
@@ -340,15 +382,15 @@ def main():
                 col1, col2 = st.columns([3, 1])
                 col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
                 if col2.button('Obriši', key=f"del_existing_job_{idx}"):
-                    delete_prev_job(emp['id'], j['company'], j['start'], j['end'])
+                    delete_prev_job(emp['id'], j['company'], parse_date(j['start']), parse_date(j['end']))
                     st.success(f"Obrisano iskustvo iz {j['company']}")
                     st.rerun()
             if existing_jobs:
                 st.markdown('---')
             
         comp = st.text_input('Tvrtka za dodati',key='comp_add')
-        st_d = st.date_input('Početak za dodati',key='st_add')
-        en_d = st.date_input('Kraj za dodati',key='en_add')
+        st_d = st.date_input('Početak za dodati', date.today(), format="DD.MM.YYYY", key='st_add')
+        en_d = st.date_input('Kraj za dodati', date.today(), format="DD.MM.YYYY", key='en_add')
         if st.button('Dodaj iskustvo',key='add_job_btn'):
             rec = {'company':comp,'start':st_d.strftime('%Y-%m-%d'),'end':en_d.strftime('%Y-%m-%d')}
             if new:
