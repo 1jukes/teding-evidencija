@@ -233,23 +233,18 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
     conn.commit()
 
 def delete_leave_record(emp_id, start_date, end_date, is_adjustment=False):
-    if is_adjustment:
-        # Prvo dohvatimo vrijednost days_adjustment prije brisanja
-        c.execute('SELECT days_adjustment FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NOT NULL',
-                  (emp_id, start_date, end_date))
-        result = c.fetchone()
-        if result:
-            # Brišemo zapis
+    try:
+        if is_adjustment:
             c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NOT NULL',
                       (emp_id, start_date, end_date))
-            conn.commit()
-            return True
-    else:
-        c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NULL',
-                  (emp_id, start_date, end_date))
+        else:
+            c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NULL',
+                      (emp_id, start_date, end_date))
         conn.commit()
         return True
-    return False
+    except Exception as e:
+        print(f"Error deleting record: {e}")
+        return False
 
 def delete_prev_job(emp_id, company, start_date, end_date):
     c.execute('DELETE FROM prev_jobs WHERE emp_id=? AND company=? AND start_date=? AND end_date=?',
@@ -360,15 +355,18 @@ def main():
             
             if col2.button('Obriši', key=f"del_leave_{idx}"):
                 success = False
-                if lr['adjustment'] is None:
-                    success = delete_leave_record(emp['id'], parse_date(lr['start']), parse_date(lr['end']), False)
-                else:
-                    success = delete_leave_record(emp['id'], lr['start'], lr['end'], True)
-                if success:
-                    st.success('Zapis uspješno obrisan')
-                    st.rerun()
-                else:
-                    st.error('Greška prilikom brisanja zapisa')
+                try:
+                    if lr['adjustment'] is None:
+                        success = delete_leave_record(emp['id'], parse_date(lr['start']), parse_date(lr['end']), False)
+                    else:
+                        success = delete_leave_record(emp['id'], lr['start'], lr['end'], True)
+                    
+                    if success:
+                        st.rerun()
+                    else:
+                        st.error('Nije moguće obrisati zapis')
+                except Exception as e:
+                    st.error(f'Greška prilikom brisanja zapisa: {str(e)}')
         
         leave_allowance = compute_leave(emp['hire_date'], emp['invalidity'], 
                                       emp['children_under15'], emp['sole_caregiver'])
