@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 import hashlib
 import locale
 import base64
+import time
 
 # Postavljanje hrvatskog lokalnog vremena
 try:
@@ -232,18 +233,20 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
               (emp_id, today, today, days_value, note))
     conn.commit()
 
-def delete_leave_record(emp_id, start_date, end_date, is_adjustment=False):
+def delete_leave_record(emp_id, date, adjustment=None):
+    """
+    Briše zapis godišnjeg odmora.
+    emp_id: ID zaposlenika
+    date: datum zapisa
+    adjustment: ako je None, briše običan zapis, inače briše zapis prilagodbe
+    """
     try:
-        if is_adjustment:
-            # Za zapise s prilagodbama (dodavanje/oduzimanje)
-            c.execute('''DELETE FROM leave_records 
-                      WHERE emp_id=? AND start_date=? AND start_date=end_date AND days_adjustment IS NOT NULL''',
-                      (emp_id, start_date))
+        if adjustment is None:
+            c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND days_adjustment IS NULL',
+                     (emp_id, date))
         else:
-            # Za obične zapise godišnjeg
-            c.execute('''DELETE FROM leave_records 
-                      WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NULL''',
-                      (emp_id, start_date, end_date))
+            c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND days_adjustment=?',
+                     (emp_id, date, adjustment))
         conn.commit()
         return True
     except Exception as e:
@@ -347,14 +350,12 @@ def main():
         for idx, lr in enumerate(leave_records):
             col1, col2 = st.columns([3, 1])
             if lr['adjustment'] is None:
-                # Obični zapis godišnjeg
                 start_date = datetime.strptime(parse_date(lr['start']), '%Y-%m-%d').date()
                 end_date = datetime.strptime(parse_date(lr['end']), '%Y-%m-%d').date()
                 days = (end_date - start_date).days + 1
                 total_days += days
                 col1.write(f"- {lr['start']} ➜ {lr['end']} ({days} dana)")
             else:
-                # Zapis prilagodbe (dodavanje/oduzimanje)
                 total_days -= lr['adjustment']
                 txt = "Dodano" if lr['adjustment'] > 0 else "Oduzeto"
                 note_text = f" - {lr['note']}" if lr['note'] else ""
@@ -362,14 +363,14 @@ def main():
             
             if col2.button('Obriši', key=f"del_leave_{idx}"):
                 if lr['adjustment'] is None:
-                    # Brisanje običnog zapisa godišnjeg
-                    success = delete_leave_record(emp['id'], parse_date(lr['start']), parse_date(lr['end']), False)
+                    success = delete_leave_record(emp['id'], parse_date(lr['start']))
                 else:
-                    # Brisanje zapisa prilagodbe
-                    success = delete_leave_record(emp['id'], lr['start'], None, True)
+                    success = delete_leave_record(emp['id'], lr['start'], lr['adjustment'])
                 
                 if success:
-                    st.experimental_rerun()
+                    st.success('Zapis je obrisan')
+                    time.sleep(0.1)  # Kratka pauza prije osvježavanja
+                    st.rerun()
                 else:
                     st.error('Nije moguće obrisati zapis')
         
