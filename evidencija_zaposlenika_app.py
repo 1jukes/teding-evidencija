@@ -159,10 +159,30 @@ def compute_tenure(hire):
     return relativedelta(d, h)
 
 def format_rd(rd):
+    """
+    Formatira relativedelta u string, pretvarajući dane preko 30 u mjesece.
+    Primjer: 1g 3m 45d -> 1g 4m 15d
+    """
+    years = rd.years
+    months = rd.months
+    days = rd.days
+    
+    # Pretvaranje dana preko 30 u mjesece
+    if days >= 30:
+        additional_months = days // 30
+        months += additional_months
+        days = days % 30
+    
+    # Pretvaranje mjeseci preko 12 u godine
+    if months >= 12:
+        additional_years = months // 12
+        years += additional_years
+        months = months % 12
+    
     parts = []
-    if rd.years: parts.append(f"{rd.years}g")
-    if rd.months: parts.append(f"{rd.months}m")
-    if rd.days: parts.append(f"{rd.days}d")
+    if years: parts.append(f"{years}g")
+    if months: parts.append(f"{months}m")
+    if days: parts.append(f"{days}d")
     return ' '.join(parts) or '0d'
 
 def compute_leave(hire, invalidity, children, sole):
