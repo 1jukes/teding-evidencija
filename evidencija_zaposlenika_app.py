@@ -438,25 +438,29 @@ def main():
             c3,c4 = st.columns(2)
             with c3:
                 st.markdown('**Fizički pregled**')
-                phys_req = st.checkbox('Obavezan fizički pregled', value=False, key='phys_req_checkbox')
-                next_phys = None
-                if phys_req:
-                    next_phys = st.date_input('Sljedeći fizički pregled',
-                                         value=None,
-                                         min_value=date.today(),
-                                         format="DD.MM.YYYY",
-                                         key='next_phys_date')
+                last_phys = st.date_input('Zadnji fizički pregled',
+                                     value=None,
+                                     min_value=date(1960,1,1),
+                                     format="DD.MM.YYYY",
+                                     key='last_phys_date')
+                next_phys = st.date_input('Sljedeći fizički pregled',
+                                     value=None,
+                                     min_value=date.today(),
+                                     format="DD.MM.YYYY",
+                                     key='next_phys_date')
             
             with c4:
                 st.markdown('**Psihički pregled**')
-                psy_req = st.checkbox('Obavezan psihički pregled', value=False, key='psy_req_checkbox')
-                next_psy = None
-                if psy_req:
-                    next_psy = st.date_input('Sljedeći psihički pregled',
-                                        value=None,
-                                        min_value=date.today(),
-                                        format="DD.MM.YYYY",
-                                        key='next_psy_date')
+                last_psy = st.date_input('Zadnji psihički pregled',
+                                    value=None,
+                                    min_value=date(1960,1,1),
+                                    format="DD.MM.YYYY",
+                                    key='last_psy_date')
+                next_psy = st.date_input('Sljedeći psihički pregled',
+                                    value=None,
+                                    min_value=date.today(),
+                                    format="DD.MM.YYYY",
+                                    key='next_psy_date')
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
@@ -476,23 +480,19 @@ def main():
             if submit:
                 if not name or not hire:
                     st.error('Molimo unesite ime i datum zaposlenja')
-                elif phys_req and not next_phys:
-                    st.error('Molimo unesite datum sljedećeg fizičkog pregleda')
-                elif psy_req and not next_psy:
-                    st.error('Molimo unesite datum sljedećeg psihičkog pregleda')
                 else:
                     data = {
                         'name': name,
                         'hire': hire.strftime('%Y-%m-%d'),
-                        'last_phys': hire.strftime('%Y-%m-%d') if phys_req else None,
-                        'last_psy': hire.strftime('%Y-%m-%d') if psy_req else None,
+                        'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
+                        'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
                         'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
                         'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
                         'invalidity': invalidity,
                         'children': children,
                         'sole': sole,
-                        'phys_req': phys_req,
-                        'psy_req': psy_req
+                        'phys_req': bool(last_phys or next_phys),
+                        'psy_req': bool(last_psy or next_psy)
                     }
                     
                     if add_employee(data):
@@ -503,14 +503,7 @@ def main():
                         st.error('Greška prilikom dodavanja zaposlenika')
 
     elif menu == 'Uredi zaposlenika':
-        # Reset session state kad se promijeni zaposlenik
         sel = st.selectbox('Odaberi zaposlenika',names,key='edit_select')
-        if 'last_selected' not in st.session_state or st.session_state.last_selected != sel:
-            st.session_state.last_selected = sel
-            st.session_state.edit_jobs = []
-            if 'edit_form_key' in st.session_state:
-                del st.session_state.edit_form_key
-
         emp = next(e for e in emps if e['name']==sel)
         
         with st.form('edit_form', clear_on_submit=True):
@@ -524,48 +517,42 @@ def main():
             c3,c4 = st.columns(2)
             with c3:
                 st.markdown('**Fizički pregled**')
-                phys_req = st.checkbox('Obavezan fizički pregled', value=False)
-                if phys_req:
-                    last_phys = st.date_input('Zadnji fiz.',
-                                         value=date.today(),
-                                         min_value=date(1960,1,1),
-                                         format="DD.MM.YYYY")
-                    next_phys = st.date_input('Sljedeći fiz.',
-                                         value=date.today(),
-                                         min_value=date(1960,1,1),
-                                         format="DD.MM.YYYY")
-                else:
-                    last_phys = None
-                    next_phys = None
+                last_phys = st.date_input('Zadnji fizički pregled',
+                                     value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date() if emp['last_physical_date'] else None,
+                                     min_value=date(1960,1,1),
+                                     format="DD.MM.YYYY",
+                                     key='edit_last_phys_date')
+                next_phys = st.date_input('Sljedeći fizički pregled',
+                                     value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else None,
+                                     min_value=date.today(),
+                                     format="DD.MM.YYYY",
+                                     key='edit_next_phys_date')
             
             with c4:
                 st.markdown('**Psihički pregled**')
-                psy_req = st.checkbox('Obavezan psihički pregled', value=False)
-                if psy_req:
-                    last_psy = st.date_input('Zadnji psih.',
-                                        value=date.today(),
-                                        min_value=date(1960,1,1),
-                                        format="DD.MM.YYYY")
-                    next_psy = st.date_input('Sljedeći psih.',
-                                        value=date.today(),
-                                        min_value=date(1960,1,1),
-                                        format="DD.MM.YYYY")
-                else:
-                    last_psy = None
-                    next_psy = None
+                last_psy = st.date_input('Zadnji psihički pregled',
+                                    value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date() if emp['last_psych_date'] else None,
+                                    min_value=date(1960,1,1),
+                                    format="DD.MM.YYYY",
+                                    key='edit_last_psy_date')
+                next_psy = st.date_input('Sljedeći psihički pregled',
+                                    value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else None,
+                                    min_value=date.today(),
+                                    format="DD.MM.YYYY",
+                                    key='edit_next_psy_date')
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
-            invalidity = c5.checkbox('Invaliditet (+5)', value=False)
+            invalidity = c5.checkbox('Invaliditet (+5)', value=bool(emp['invalidity']))
             children = c6.number_input('Broj djece <15',
                                      min_value=0,
                                      max_value=10,
-                                     value=0,
+                                     value=int(emp['children_under15']),
                                      step=1,
                                      key='children_count_edit',
                                      label_visibility="collapsed")
             c6.caption('Broj djece <15')
-            sole = c7.checkbox('Samohranitelj (+3)', value=False)
+            sole = c7.checkbox('Samohranitelj (+3)', value=bool(emp['sole_caregiver']))
 
             submit = st.form_submit_button('Spremi promjene')
             
@@ -580,12 +567,11 @@ def main():
                     'invalidity': invalidity,
                     'children': children,
                     'sole': sole,
-                    'phys_req': phys_req,
-                    'psy_req': psy_req
+                    'phys_req': bool(last_phys or next_phys),
+                    'psy_req': bool(last_psy or next_psy)
                 }
                 edit_employee(emp['id'], data)
                 st.success('Uređeno')
-                st.session_state.edit_jobs = get_prev_jobs(emp['id'])
                 st.rerun()
 
     elif menu == 'Obriši zaposlenika':
