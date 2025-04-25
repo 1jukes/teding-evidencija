@@ -427,18 +427,6 @@ def main():
         if 'new_jobs' not in st.session_state:
             st.session_state.new_jobs = []
         
-        # Initialize session state for checkboxes if not exists
-        if 'phys_req' not in st.session_state:
-            st.session_state.phys_req = False
-        if 'psy_req' not in st.session_state:
-            st.session_state.psy_req = False
-            
-        def on_phys_change():
-            st.session_state.phys_req = not st.session_state.phys_req
-            
-        def on_psy_change():
-            st.session_state.psy_req = not st.session_state.psy_req
-        
         with st.form('emp_form'):
             name = st.text_input('Ime i prezime', value="")
             hire = st.date_input('Datum zaposlenja',
@@ -450,27 +438,25 @@ def main():
             c3,c4 = st.columns(2)
             with c3:
                 st.markdown('**Fizički pregled**')
-                phys_req = st.checkbox('Obavezan fizički pregled', 
-                                     value=st.session_state.phys_req,
-                                     on_change=on_phys_change)
+                phys_req = st.checkbox('Obavezan fizički pregled', value=False, key='phys_req_checkbox')
                 next_phys = None
-                if st.session_state.phys_req:
+                if phys_req:
                     next_phys = st.date_input('Sljedeći fizički pregled',
                                          value=None,
                                          min_value=date.today(),
-                                         format="DD.MM.YYYY")
+                                         format="DD.MM.YYYY",
+                                         key='next_phys_date')
             
             with c4:
                 st.markdown('**Psihički pregled**')
-                psy_req = st.checkbox('Obavezan psihički pregled', 
-                                    value=st.session_state.psy_req,
-                                    on_change=on_psy_change)
+                psy_req = st.checkbox('Obavezan psihički pregled', value=False, key='psy_req_checkbox')
                 next_psy = None
-                if st.session_state.psy_req:
+                if psy_req:
                     next_psy = st.date_input('Sljedeći psihički pregled',
                                         value=None,
                                         min_value=date.today(),
-                                        format="DD.MM.YYYY")
+                                        format="DD.MM.YYYY",
+                                        key='next_psy_date')
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
@@ -490,30 +476,28 @@ def main():
             if submit:
                 if not name or not hire:
                     st.error('Molimo unesite ime i datum zaposlenja')
-                elif st.session_state.phys_req and not next_phys:
+                elif phys_req and not next_phys:
                     st.error('Molimo unesite datum sljedećeg fizičkog pregleda')
-                elif st.session_state.psy_req and not next_psy:
+                elif psy_req and not next_psy:
                     st.error('Molimo unesite datum sljedećeg psihičkog pregleda')
                 else:
                     data = {
                         'name': name,
                         'hire': hire.strftime('%Y-%m-%d'),
-                        'last_phys': hire.strftime('%Y-%m-%d') if st.session_state.phys_req else None,
-                        'last_psy': hire.strftime('%Y-%m-%d') if st.session_state.psy_req else None,
+                        'last_phys': hire.strftime('%Y-%m-%d') if phys_req else None,
+                        'last_psy': hire.strftime('%Y-%m-%d') if psy_req else None,
                         'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
                         'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
                         'invalidity': invalidity,
                         'children': children,
                         'sole': sole,
-                        'phys_req': st.session_state.phys_req,
-                        'psy_req': st.session_state.psy_req
+                        'phys_req': phys_req,
+                        'psy_req': psy_req
                     }
                     
                     if add_employee(data):
                         st.success('Zaposlenik uspješno dodan')
                         st.session_state.new_jobs = []
-                        st.session_state.phys_req = False
-                        st.session_state.psy_req = False
                         st.rerun()
                     else:
                         st.error('Greška prilikom dodavanja zaposlenika')
