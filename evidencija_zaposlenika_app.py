@@ -333,6 +333,13 @@ def main():
             submit = st.form_submit_button('Spremi zaposlenika')
 
         st.markdown('**Prethodno iskustvo**')
+        if not new:
+            st.markdown('**Postojeća iskustva:**')
+            existing_jobs = get_prev_jobs(emp['id'])
+            for j in existing_jobs:
+                st.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
+            st.markdown('---')
+            
         comp = st.text_input('Tvrtka za dodati',key='comp_add')
         st_d = st.date_input('Početak za dodati',key='st_add')
         en_d = st.date_input('Kraj za dodati',key='en_add')
@@ -348,15 +355,17 @@ def main():
                 st.session_state.edit_jobs.append(rec)
 
         jobs = st.session_state.new_jobs if new else st.session_state.edit_jobs
-        for idx, j in enumerate(jobs):
-            col1, col2 = st.columns([3, 1])
-            col1.write(f"- {j['company']}: {j['start']} ➜ {j['end']}")
-            if col2.button('Obriši', key=f"del_job_{idx}"):
-                if new:
-                    st.session_state.new_jobs.pop(idx)
-                else:
-                    st.session_state.edit_jobs.pop(idx)
-                st.rerun()
+        if jobs:
+            st.markdown('**Nova iskustva za dodati:**')
+            for idx, j in enumerate(jobs):
+                col1, col2 = st.columns([3, 1])
+                col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
+                if col2.button('Obriši', key=f"del_job_{idx}"):
+                    if new:
+                        st.session_state.new_jobs.pop(idx)
+                    else:
+                        st.session_state.edit_jobs.pop(idx)
+                    st.rerun()
 
         if submit:
             data = {'name':name,'hire':hire.strftime('%Y-%m-%d'),'last_phys':last_phys.strftime('%Y-%m-%d'),
