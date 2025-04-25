@@ -382,15 +382,9 @@ def main():
                                min_value=date(1960,1,1),
                                format="DD.MM.YYYY")
             
-            st.markdown('### Dodatne informacije')
-            c3,c4,c5 = st.columns(3)
-            invalidity = c3.checkbox('Invaliditet (+5)',value=bool(emp['invalidity']))
-            children = c4.number_input('Broj djece <15',min_value=0,value=int(emp['children_under15']))
-            sole = c5.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
-            
             st.markdown('### Pregledi')
-            c6,c7 = st.columns(2)
-            with c6:
+            c3,c4 = st.columns(2)
+            with c3:
                 st.markdown('**Fizički pregled**')
                 phys_req = st.checkbox('Obavezan fizički pregled', value=bool(emp.get('physical_required', True)))
                 if phys_req:
@@ -406,7 +400,7 @@ def main():
                     last_phys = datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date()
                     next_phys = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date()
             
-            with c7:
+            with c4:
                 st.markdown('**Psihički pregled**')
                 psy_req = st.checkbox('Obavezan psihički pregled', value=bool(emp.get('psych_required', True)))
                 if psy_req:
@@ -421,6 +415,13 @@ def main():
                 else:
                     last_psy = datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date()
                     next_psy = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date()
+
+            st.markdown('### Dodatne informacije')
+            c5, c6, c7, c8 = st.columns([1,1,1,3])
+            invalidity = c5.checkbox('Invaliditet (+5)',value=bool(emp['invalidity']))
+            children = c6.number_input('Broj djece <15',min_value=0,value=int(emp['children_under15']), key='children_count', label_visibility="collapsed")
+            c6.caption('Broj djece <15')
+            sole = c7.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
             
             submit = st.form_submit_button('Spremi zaposlenika')
             
