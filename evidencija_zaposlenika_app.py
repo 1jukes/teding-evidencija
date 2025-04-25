@@ -336,9 +336,15 @@ def main():
         if not new:
             st.markdown('**Postojeća iskustva:**')
             existing_jobs = get_prev_jobs(emp['id'])
-            for j in existing_jobs:
-                st.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
-            st.markdown('---')
+            for idx, j in enumerate(existing_jobs):
+                col1, col2 = st.columns([3, 1])
+                col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
+                if col2.button('Obriši', key=f"del_existing_job_{idx}"):
+                    delete_prev_job(emp['id'], j['company'], j['start'], j['end'])
+                    st.success(f"Obrisano iskustvo iz {j['company']}")
+                    st.rerun()
+            if existing_jobs:
+                st.markdown('---')
             
         comp = st.text_input('Tvrtka za dodati',key='comp_add')
         st_d = st.date_input('Početak za dodati',key='st_add')
@@ -360,7 +366,7 @@ def main():
             for idx, j in enumerate(jobs):
                 col1, col2 = st.columns([3, 1])
                 col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
-                if col2.button('Obriši', key=f"del_job_{idx}"):
+                if col2.button('Obriši', key=f"del_new_job_{idx}"):
                     if new:
                         st.session_state.new_jobs.pop(idx)
                     else:
