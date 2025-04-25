@@ -491,8 +491,8 @@ def main():
                         'invalidity': invalidity,
                         'children': children,
                         'sole': sole,
-                        'phys_req': bool(last_phys or next_phys),
-                        'psy_req': bool(last_psy or next_psy)
+                        'phys_req': False,
+                        'psy_req': False
                     }
                     
                     if add_employee(data):
@@ -518,12 +518,12 @@ def main():
             with c3:
                 st.markdown('**Fizički pregled**')
                 last_phys = st.date_input('Zadnji fizički pregled',
-                                     value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date() if emp['last_physical_date'] else None,
+                                     value=None,
                                      min_value=date(1960,1,1),
                                      format="DD.MM.YYYY",
                                      key='edit_last_phys_date')
                 next_phys = st.date_input('Sljedeći fizički pregled',
-                                     value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else None,
+                                     value=None,
                                      min_value=date.today(),
                                      format="DD.MM.YYYY",
                                      key='edit_next_phys_date')
@@ -531,12 +531,12 @@ def main():
             with c4:
                 st.markdown('**Psihički pregled**')
                 last_psy = st.date_input('Zadnji psihički pregled',
-                                    value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date() if emp['last_psych_date'] else None,
+                                    value=None,
                                     min_value=date(1960,1,1),
                                     format="DD.MM.YYYY",
                                     key='edit_last_psy_date')
                 next_psy = st.date_input('Sljedeći psihički pregled',
-                                    value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else None,
+                                    value=None,
                                     min_value=date.today(),
                                     format="DD.MM.YYYY",
                                     key='edit_next_psy_date')
@@ -567,8 +567,8 @@ def main():
                     'invalidity': invalidity,
                     'children': children,
                     'sole': sole,
-                    'phys_req': bool(last_phys or next_phys),
-                    'psy_req': bool(last_psy or next_psy)
+                    'phys_req': False,
+                    'psy_req': False
                 }
                 edit_employee(emp['id'], data)
                 st.success('Uređeno')
