@@ -213,14 +213,14 @@ def add_employee(data):
 
         c.execute('''INSERT INTO employees
                      (name, hire_date, training_start_date, last_physical_date, last_psych_date,
-                      next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
-                      physical_required, psych_required)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
-                  (data['name'], hire_date, hire_date, 
-                   last_phys, last_psy, next_phys, next_psy,
-                   int(data['invalidity']), int(data['children']), int(data['sole']),
-                   int(data['phys_req']), int(data['psy_req'])))
-        
+                          next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
+                          physical_required, psych_required)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
+                      (data['name'], hire_date, hire_date, 
+                       last_phys, last_psy, next_phys, next_psy,
+                       int(data['invalidity']), int(data['children']), int(data['sole']),
+                       int(data['phys_req']), int(data['psy_req'])))
+            
         emp_id = c.lastrowid
         for j in st.session_state.new_jobs:
             c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
@@ -242,14 +242,14 @@ def edit_employee(emp_id, data):
 
         c.execute('''UPDATE employees SET
                      name=?, hire_date=?, training_start_date=?, last_physical_date=?, last_psych_date=?,
-                     next_physical_date=?, next_psych_date=?, invalidity=?, children_under15=?, sole_caregiver=?,
-                     physical_required=?, psych_required=?
+                         next_physical_date=?, next_psych_date=?, invalidity=?, children_under15=?, sole_caregiver=?,
+                         physical_required=?, psych_required=?
                      WHERE id=?''',
-                  (data['name'], data['hire'], data['hire'], 
-                   last_phys, last_psy, next_phys, next_psy,
-                   int(data['invalidity']), int(data['children']), int(data['sole']),
-                   int(data['phys_req']), int(data['psy_req']), emp_id))
-        
+                      (data['name'], data['hire'], data['hire'], 
+                       last_phys, last_psy, next_phys, next_psy,
+                       int(data['invalidity']), int(data['children']), int(data['sole']),
+                       int(data['phys_req']), int(data['psy_req']), emp_id))
+            
         c.execute('DELETE FROM prev_jobs WHERE emp_id=?', (emp_id,))
         for j in st.session_state.edit_jobs:
             c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
@@ -441,12 +441,12 @@ def main():
                 phys_required = st.radio('Fizički pregled', ['Nema pregleda', 'Ima preglede'], key='phys_req_radio')
                 if phys_required == 'Ima preglede':
                     last_phys = st.date_input('Zadnji fizički pregled',
-                                         value=None,
+                                         value=date.today(),
                                          min_value=date(1960,1,1),
                                          format="DD.MM.YYYY",
                                          key='last_phys_date')
                     next_phys = st.date_input('Sljedeći fizički pregled',
-                                         value=None,
+                                         value=date.today(),
                                          min_value=date.today(),
                                          format="DD.MM.YYYY",
                                          key='next_phys_date')
@@ -459,12 +459,12 @@ def main():
                 psy_required = st.radio('Psihički pregled', ['Nema pregleda', 'Ima preglede'], key='psy_req_radio')
                 if psy_required == 'Ima preglede':
                     last_psy = st.date_input('Zadnji psihički pregled',
-                                        value=None,
+                                        value=date.today(),
                                         min_value=date(1960,1,1),
                                         format="DD.MM.YYYY",
                                         key='last_psy_date')
                     next_psy = st.date_input('Sljedeći psihički pregled',
-                                        value=None,
+                                        value=date.today(),
                                         min_value=date.today(),
                                         format="DD.MM.YYYY",
                                         key='next_psy_date')
