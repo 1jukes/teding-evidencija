@@ -248,7 +248,7 @@ def delete_leave_record(emp_id, date, adjustment=None):
             c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND days_adjustment=?',
                      (emp_id, date, adjustment))
         conn.commit()
-        return True
+        return c.rowcount > 0
     except Exception as e:
         print(f"Error deleting record: {e}")
         return False
@@ -361,18 +361,23 @@ def main():
                 note_text = f" - {lr['note']}" if lr['note'] else ""
                 col1.write(f"- {txt} {abs(lr['adjustment'])} dana ({lr['start']}){note_text}")
             
-            if col2.button('Obriši', key=f"del_leave_{idx}"):
+            delete_clicked = col2.button('Obriši', key=f"del_leave_{idx}")
+            if delete_clicked:
                 if lr['adjustment'] is None:
                     success = delete_leave_record(emp['id'], parse_date(lr['start']))
                 else:
                     success = delete_leave_record(emp['id'], lr['start'], lr['adjustment'])
                 
                 if success:
-                    st.success('Zapis je obrisan')
-                    time.sleep(0.1)  # Kratka pauza prije osvježavanja
+                    st.session_state['delete_success'] = True
                     st.rerun()
                 else:
                     st.error('Nije moguće obrisati zapis')
+        
+        # Prikaži poruku o uspjehu nakon rerun-a
+        if st.session_state.get('delete_success'):
+            st.success('Zapis je obrisan')
+            del st.session_state['delete_success']
         
         leave_allowance = compute_leave(emp['hire_date'], emp['invalidity'], 
                                       emp['children_under15'], emp['sole_caregiver'])
