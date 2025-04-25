@@ -232,9 +232,13 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
               (emp_id, today, today, days_value, note))
     conn.commit()
 
-def delete_leave_record(emp_id, start_date, end_date):
-    c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=?',
-              (emp_id, start_date, end_date))
+def delete_leave_record(emp_id, start_date, end_date, is_adjustment=False):
+    if is_adjustment:
+        c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NOT NULL',
+                  (emp_id, start_date, end_date))
+    else:
+        c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND end_date=? AND days_adjustment IS NULL',
+                  (emp_id, start_date, end_date))
     conn.commit()
 
 def delete_prev_job(emp_id, company, start_date, end_date):
@@ -345,7 +349,10 @@ def main():
                 col1.write(f"- {txt} {abs(lr['adjustment'])} dana ({lr['start']}){note_text}")
             
             if col2.button('Obriši', key=f"del_leave_{idx}"):
-                delete_leave_record(emp['id'], lr['start'], lr['end'])
+                if lr['adjustment'] is None:
+                    delete_leave_record(emp['id'], parse_date(lr['start']), parse_date(lr['end']), False)
+                else:
+                    delete_leave_record(emp['id'], lr['start'], lr['end'], True)
                 st.rerun()
         
         leave_allowance = compute_leave(emp['hire_date'], emp['invalidity'], 
