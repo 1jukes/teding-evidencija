@@ -199,23 +199,29 @@ def compute_leave(hire, invalidity, children, sole):
 # CRUD employee
 
 def add_employee(data):
-    c.execute('''INSERT INTO employees
-                 (name, hire_date, training_start_date, last_physical_date, last_psych_date,
-                  next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
-                  physical_required, psych_required)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
-              (data['name'], data['hire'], data['hire'], 
-               data['last_phys'] if data['phys_req'] else None,
-               data['last_psy'] if data['psy_req'] else None,
-               data['next_phys'] if data['phys_req'] else None,
-               data['next_psy'] if data['psy_req'] else None,
-               int(data['invalidity']), data['children'], int(data['sole']),
-               int(data['phys_req']), int(data['psy_req'])))
-    emp_id = c.lastrowid
-    for j in st.session_state.new_jobs:
-        c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
-                  (emp_id, j['company'], j['start'], j['end']))
-    conn.commit()
+    try:
+        c.execute('''INSERT INTO employees
+                     (name, hire_date, training_start_date, last_physical_date, last_psych_date,
+                      next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
+                      physical_required, psych_required)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
+                  (data['name'], data['hire'], data['hire'], 
+                   data['last_phys'] if data['phys_req'] else None,
+                   data['last_psy'] if data['psy_req'] else None,
+                   data['next_phys'] if data['phys_req'] else None,
+                   data['next_psy'] if data['psy_req'] else None,
+                   int(data['invalidity']), int(data['children']), int(data['sole']),
+                   int(data['phys_req']), int(data['psy_req'])))
+        emp_id = c.lastrowid
+        for j in st.session_state.new_jobs:
+            c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
+                      (emp_id, j['company'], j['start'], j['end']))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error adding employee: {e}")
+        conn.rollback()
+        return False
 
 def edit_employee(emp_id, data):
     c.execute('''UPDATE employees SET
@@ -449,7 +455,13 @@ def main():
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
             invalidity = c5.checkbox('Invaliditet (+5)',value=bool(emp['invalidity']))
-            children = c6.number_input('Broj djece <15',min_value=0,value=int(emp['children_under15']), key='children_count', label_visibility="collapsed")
+            children = c6.number_input('Broj djece <15',
+                                     min_value=0,
+                                     max_value=10,
+                                     value=int(emp['children_under15']),
+                                     step=1,
+                                     key='children_count',
+                                     label_visibility="collapsed")
             c6.caption('Broj djece <15')
             sole = c7.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
             
@@ -457,22 +469,25 @@ def main():
             
             if submit:
                 data = {
-                    'name':name,
-                    'hire':hire.strftime('%Y-%m-%d'),
-                    'last_phys':last_phys.strftime('%Y-%m-%d'),
-                    'last_psy':last_psy.strftime('%Y-%m-%d'),
-                    'next_phys':next_phys.strftime('%Y-%m-%d'),
-                    'next_psy':next_psy.strftime('%Y-%m-%d'),
-                    'invalidity':invalidity,
-                    'children':children,
-                    'sole':sole,
-                    'phys_req':phys_req,
-                    'psy_req':psy_req
+                    'name': name,
+                    'hire': hire.strftime('%Y-%m-%d'),
+                    'last_phys': last_phys.strftime('%Y-%m-%d'),
+                    'last_psy': last_psy.strftime('%Y-%m-%d'),
+                    'next_phys': next_phys.strftime('%Y-%m-%d'),
+                    'next_psy': next_psy.strftime('%Y-%m-%d'),
+                    'invalidity': invalidity,
+                    'children': children,
+                    'sole': sole,
+                    'phys_req': phys_req,
+                    'psy_req': psy_req
                 }
                 if new:
-                    add_employee(data)
-                    st.success('Dodano')
-                    st.session_state.new_jobs = []
+                    if add_employee(data):
+                        st.success('Dodano')
+                        st.session_state.new_jobs = []
+                        st.rerun()
+                    else:
+                        st.error('Greška prilikom dodavanja zaposlenika')
                 else:
                     edit_employee(emp['id'], data)
                     st.success('Uređeno')
