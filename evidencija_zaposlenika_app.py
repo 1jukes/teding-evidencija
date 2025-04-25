@@ -200,21 +200,27 @@ def compute_leave(hire, invalidity, children, sole):
 
 def add_employee(data):
     try:
-        # Postavi datume na None ako pregledi nisu obavezni
+        print("Debug - Adding employee with data:", data)  # Debug ispis
+        
+        # Osiguraj da su svi datumi ili string ili None
+        hire_date = data['hire']
         last_phys = data['last_phys'] if data['phys_req'] else None
         next_phys = data['next_phys'] if data['phys_req'] else None
         last_psy = data['last_psy'] if data['psy_req'] else None
         next_psy = data['next_psy'] if data['psy_req'] else None
+
+        print(f"Debug - Dates: hire={hire_date}, last_phys={last_phys}, next_phys={next_phys}")  # Debug ispis
 
         c.execute('''INSERT INTO employees
                      (name, hire_date, training_start_date, last_physical_date, last_psych_date,
                       next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
                       physical_required, psych_required)
                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
-                  (data['name'], data['hire'], data['hire'], 
+                  (data['name'], hire_date, hire_date, 
                    last_phys, last_psy, next_phys, next_psy,
                    int(data['invalidity']), int(data['children']), int(data['sole']),
                    int(data['phys_req']), int(data['psy_req'])))
+        
         emp_id = c.lastrowid
         for j in st.session_state.new_jobs:
             c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
@@ -222,7 +228,7 @@ def add_employee(data):
         conn.commit()
         return True
     except Exception as e:
-        print(f"Error adding employee: {e}")
+        print(f"Error adding employee: {e}")  # Debug ispis
         conn.rollback()
         return False
 
@@ -401,32 +407,105 @@ def main():
                                       emp['children_under15'], emp['sole_caregiver'])
         st.markdown(f"**Preostalo dana godišnjeg: {leave_allowance - total_days}**")
 
-    elif menu in ['Dodaj zaposlenika','Uredi zaposlenika']:
-        new = (menu=='Dodaj zaposlenika')
-        if new:
-            emp = {'name':'','hire_date':date.today().strftime('%Y-%m-%d'),
-                   'last_physical_date':date.today().strftime('%Y-%m-%d'),
-                   'last_psych_date':date.today().strftime('%Y-%m-%d'),
-                   'next_physical_date':date.today().strftime('%Y-%m-%d'),
-                   'next_psych_date':date.today().strftime('%Y-%m-%d'),
-                   'invalidity':False,'children_under15':0,'sole_caregiver':False,
-                   'physical_required':True,'psych_required':True}
-            if 'new_jobs' not in st.session_state:
-                st.session_state.new_jobs = []
-        else:
-            sel = st.selectbox('Odaberi zaposlenika',names,key='edit_select')
-            emp = next(e for e in emps if e['name']==sel)
-            if 'edit_jobs' not in st.session_state:
-                st.session_state.edit_jobs = get_prev_jobs(emp['id'])
-            if 'physical_required' not in emp:
-                emp['physical_required'] = True
-            if 'psych_required' not in emp:
-                emp['psych_required'] = True
-
+    elif menu == 'Dodaj zaposlenika':
+        if 'new_jobs' not in st.session_state:
+            st.session_state.new_jobs = []
+        
         with st.form('emp_form'):
-            c1,c2 = st.columns(2)
-            name = c1.text_input('Ime i prezime',value=emp['name'])
-            hire = c2.date_input('Datum zaposlenja',
+            name = st.text_input('Ime i prezime', value="")
+            hire = st.date_input('Datum zaposlenja',
+                               value=date.today(),
+                               min_value=date(1960,1,1),
+                               format="DD.MM.YYYY")
+            
+            st.markdown('### Pregledi')
+            c3,c4 = st.columns(2)
+            with c3:
+                st.markdown('**Fizički pregled**')
+                phys_req = st.checkbox('Obavezan fizički pregled', value=False)
+                if phys_req:
+                    last_phys = st.date_input('Zadnji fiz.',
+                                         value=date.today(),
+                                         min_value=date(1960,1,1),
+                                         format="DD.MM.YYYY")
+                    next_phys = st.date_input('Sljedeći fiz.',
+                                         value=date.today(),
+                                         min_value=date(1960,1,1),
+                                         format="DD.MM.YYYY")
+                else:
+                    last_phys = None
+                    next_phys = None
+            
+            with c4:
+                st.markdown('**Psihički pregled**')
+                psy_req = st.checkbox('Obavezan psihički pregled', value=False)
+                if psy_req:
+                    last_psy = st.date_input('Zadnji psih.',
+                                        value=date.today(),
+                                        min_value=date(1960,1,1),
+                                        format="DD.MM.YYYY")
+                    next_psy = st.date_input('Sljedeći psih.',
+                                        value=date.today(),
+                                        min_value=date(1960,1,1),
+                                        format="DD.MM.YYYY")
+                else:
+                    last_psy = None
+                    next_psy = None
+
+            st.markdown('### Dodatne informacije')
+            c5, c6, c7, c8 = st.columns([1,1,1,3])
+            invalidity = c5.checkbox('Invaliditet (+5)', value=False)
+            children = c6.number_input('Broj djece <15',
+                                     min_value=0,
+                                     max_value=10,
+                                     value=0,
+                                     step=1,
+                                     key='children_count',
+                                     label_visibility="collapsed")
+            c6.caption('Broj djece <15')
+            sole = c7.checkbox('Samohranitelj (+3)', value=False)
+
+            submit = st.form_submit_button('Spremi zaposlenika')
+            
+            if submit:
+                if not name:
+                    st.error('Molimo unesite ime i prezime')
+                else:
+                    data = {
+                        'name': name,
+                        'hire': hire.strftime('%Y-%m-%d'),
+                        'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
+                        'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
+                        'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
+                        'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
+                        'invalidity': invalidity,
+                        'children': children,
+                        'sole': sole,
+                        'phys_req': phys_req,
+                        'psy_req': psy_req
+                    }
+                    
+                    if add_employee(data):
+                        st.success('Zaposlenik uspješno dodan')
+                        st.session_state.new_jobs = []
+                        st.rerun()
+                    else:
+                        st.error('Greška prilikom dodavanja zaposlenika')
+
+    elif menu == 'Uredi zaposlenika':
+        # Reset session state kad se promijeni zaposlenik
+        sel = st.selectbox('Odaberi zaposlenika',names,key='edit_select')
+        if 'last_selected' not in st.session_state or st.session_state.last_selected != sel:
+            st.session_state.last_selected = sel
+            st.session_state.edit_jobs = []
+            if 'edit_form_key' in st.session_state:
+                del st.session_state.edit_form_key
+
+        emp = next(e for e in emps if e['name']==sel)
+        
+        with st.form('edit_form', clear_on_submit=True):
+            name = st.text_input('Ime i prezime',value=emp['name'])
+            hire = st.date_input('Datum zaposlenja',
                                value=datetime.strptime(emp['hire_date'],'%Y-%m-%d').date(),
                                min_value=date(1960,1,1),
                                format="DD.MM.YYYY")
@@ -435,125 +514,77 @@ def main():
             c3,c4 = st.columns(2)
             with c3:
                 st.markdown('**Fizički pregled**')
-                phys_req = st.checkbox('Obavezan fizički pregled', value=bool(emp.get('physical_required', True)))
+                phys_req = st.checkbox('Obavezan fizički pregled', value=False)
                 if phys_req:
                     last_phys = st.date_input('Zadnji fiz.',
-                                         value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date() if emp['last_physical_date'] else date.today(),
+                                         value=date.today(),
                                          min_value=date(1960,1,1),
                                          format="DD.MM.YYYY")
                     next_phys = st.date_input('Sljedeći fiz.',
-                                         value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else date.today(),
+                                         value=date.today(),
                                          min_value=date(1960,1,1),
                                          format="DD.MM.YYYY")
                 else:
-                    last_phys = date.today()
-                    next_phys = date.today()
+                    last_phys = None
+                    next_phys = None
             
             with c4:
                 st.markdown('**Psihički pregled**')
-                psy_req = st.checkbox('Obavezan psihički pregled', value=bool(emp.get('psych_required', True)))
+                psy_req = st.checkbox('Obavezan psihički pregled', value=False)
                 if psy_req:
                     last_psy = st.date_input('Zadnji psih.',
-                                        value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date() if emp['last_psych_date'] else date.today(),
+                                        value=date.today(),
                                         min_value=date(1960,1,1),
                                         format="DD.MM.YYYY")
                     next_psy = st.date_input('Sljedeći psih.',
-                                        value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else date.today(),
+                                        value=date.today(),
                                         min_value=date(1960,1,1),
                                         format="DD.MM.YYYY")
                 else:
-                    last_psy = date.today()
-                    next_psy = date.today()
+                    last_psy = None
+                    next_psy = None
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
-            invalidity = c5.checkbox('Invaliditet (+5)',value=bool(emp['invalidity']))
+            invalidity = c5.checkbox('Invaliditet (+5)', value=False)
             children = c6.number_input('Broj djece <15',
                                      min_value=0,
                                      max_value=10,
-                                     value=int(emp['children_under15']),
+                                     value=0,
                                      step=1,
-                                     key='children_count',
+                                     key='children_count_edit',
                                      label_visibility="collapsed")
             c6.caption('Broj djece <15')
-            sole = c7.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
-            
-            submit = st.form_submit_button('Spremi zaposlenika')
+            sole = c7.checkbox('Samohranitelj (+3)', value=False)
+
+            submit = st.form_submit_button('Spremi promjene')
             
             if submit:
                 data = {
                     'name': name,
                     'hire': hire.strftime('%Y-%m-%d'),
-                    'last_phys': last_phys.strftime('%Y-%m-%d'),
-                    'last_psy': last_psy.strftime('%Y-%m-%d'),
-                    'next_phys': next_phys.strftime('%Y-%m-%d'),
-                    'next_psy': next_psy.strftime('%Y-%m-%d'),
+                    'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
+                    'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
+                    'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
+                    'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
                     'invalidity': invalidity,
                     'children': children,
                     'sole': sole,
                     'phys_req': phys_req,
                     'psy_req': psy_req
                 }
-                if new:
-                    if add_employee(data):
-                        st.success('Dodano')
-                        st.session_state.new_jobs = []
-                        st.rerun()
-                    else:
-                        st.error('Greška prilikom dodavanja zaposlenika')
-                else:
-                    edit_employee(emp['id'], data)
-                    st.success('Uređeno')
-                    st.session_state.edit_jobs = get_prev_jobs(emp['id'])
+                edit_employee(emp['id'], data)
+                st.success('Uređeno')
+                st.session_state.edit_jobs = get_prev_jobs(emp['id'])
                 st.rerun()
 
-        st.markdown('**Prethodno iskustvo**')
-        if not new:
-            st.markdown('**Postojeća iskustva:**')
-            existing_jobs = get_prev_jobs(emp['id'])
-            for idx, j in enumerate(existing_jobs):
-                col1, col2 = st.columns([3, 1])
-                col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
-                if col2.button('Obriši', key=f"del_existing_job_{idx}"):
-                    delete_prev_job(emp['id'], j['company'], parse_date(j['start']), parse_date(j['end']))
-                    st.success(f"Obrisano iskustvo iz {j['company']}")
-                    st.rerun()
-            if existing_jobs:
-                st.markdown('---')
-            
-        comp = st.text_input('Tvrtka za dodati',key='comp_add')
-        st_d = st.date_input('Početak za dodati', date.today(), format="DD.MM.YYYY", key='st_add')
-        en_d = st.date_input('Kraj za dodati', date.today(), format="DD.MM.YYYY", key='en_add')
-        if st.button('Dodaj iskustvo',key='add_job_btn'):
-            rec = {'company':comp,'start':st_d.strftime('%Y-%m-%d'),'end':en_d.strftime('%Y-%m-%d')}
-            if new:
-                if 'new_jobs' not in st.session_state:
-                    st.session_state.new_jobs = []
-                st.session_state.new_jobs.append(rec)
-            else:
-                if 'edit_jobs' not in st.session_state:
-                    st.session_state.edit_jobs = []
-                st.session_state.edit_jobs.append(rec)
-
-        jobs = st.session_state.new_jobs if new else st.session_state.edit_jobs
-        if jobs:
-            st.markdown('**Nova iskustva za dodati:**')
-            for idx, j in enumerate(jobs):
-                col1, col2 = st.columns([3, 1])
-                col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
-                if col2.button('Obriši', key=f"del_new_job_{idx}"):
-                    if new:
-                        st.session_state.new_jobs.pop(idx)
-                    else:
-                        st.session_state.edit_jobs.pop(idx)
-                    st.rerun()
-
-    else:
+    elif menu == 'Obriši zaposlenika':
         sel = st.selectbox('Odaberi zaposlenika za brisanje',names,key='del_select')
-        emp = next(e for e in emps if e['name']==sel)
         if st.button('Obriši zaposlenika'):
+            emp = next(e for e in emps if e['name']==sel)
             delete_employee(emp['id'])
             st.success('Obrisano')
+            st.rerun()
 
 if __name__=='__main__':
     main()
