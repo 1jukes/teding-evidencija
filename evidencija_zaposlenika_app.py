@@ -81,15 +81,28 @@ def init_db():
             name TEXT NOT NULL,
             hire_date TEXT NOT NULL,
             training_start_date TEXT NOT NULL,
-            last_physical_date TEXT NOT NULL,
-            last_psych_date TEXT NOT NULL,
-            next_physical_date TEXT NOT NULL,
-            next_psych_date TEXT NOT NULL,
+            last_physical_date TEXT,
+            last_psych_date TEXT,
+            next_physical_date TEXT,
+            next_psych_date TEXT,
             invalidity INTEGER NOT NULL DEFAULT 0,
             children_under15 INTEGER NOT NULL DEFAULT 0,
-            sole_caregiver INTEGER NOT NULL DEFAULT 0
+            sole_caregiver INTEGER NOT NULL DEFAULT 0,
+            physical_required INTEGER NOT NULL DEFAULT 1,
+            psych_required INTEGER NOT NULL DEFAULT 1
         )
     ''')
+    
+    # Dodaj nove kolone ako ne postoje
+    try:
+        c.execute('ALTER TABLE employees ADD COLUMN physical_required INTEGER NOT NULL DEFAULT 1')
+    except:
+        pass
+    try:
+        c.execute('ALTER TABLE employees ADD COLUMN psych_required INTEGER NOT NULL DEFAULT 1')
+    except:
+        pass
+    
     c.execute('''
         CREATE TABLE IF NOT EXISTS prev_jobs (
             id INTEGER PRIMARY KEY,
@@ -166,10 +179,16 @@ def compute_leave(hire, invalidity, children, sole):
 def add_employee(data):
     c.execute('''INSERT INTO employees
                  (name, hire_date, training_start_date, last_physical_date, last_psych_date,
-                  next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver)
-                 VALUES (?,?,?,?,?,?,?,?,?,?)''',
-              (data['name'], data['hire'], data['hire'], data['last_phys'], data['last_psy'],
-               data['next_phys'], data['next_psy'], int(data['invalidity']), data['children'], int(data['sole'])))
+                  next_physical_date, next_psych_date, invalidity, children_under15, sole_caregiver,
+                  physical_required, psych_required)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
+              (data['name'], data['hire'], data['hire'], 
+               data['last_phys'] if data['phys_req'] else None,
+               data['last_psy'] if data['psy_req'] else None,
+               data['next_phys'] if data['phys_req'] else None,
+               data['next_psy'] if data['psy_req'] else None,
+               int(data['invalidity']), data['children'], int(data['sole']),
+               int(data['phys_req']), int(data['psy_req'])))
     emp_id = c.lastrowid
     for j in st.session_state.new_jobs:
         c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
@@ -179,10 +198,16 @@ def add_employee(data):
 def edit_employee(emp_id, data):
     c.execute('''UPDATE employees SET
                  name=?, hire_date=?, training_start_date=?, last_physical_date=?, last_psych_date=?,
-                 next_physical_date=?, next_psych_date=?, invalidity=?, children_under15=?, sole_caregiver=?
+                 next_physical_date=?, next_psych_date=?, invalidity=?, children_under15=?, sole_caregiver=?,
+                 physical_required=?, psych_required=?
                  WHERE id=?''',
-              (data['name'], data['hire'], data['hire'], data['last_phys'], data['last_psy'],
-               data['next_phys'], data['next_psy'], int(data['invalidity']), data['children'], int(data['sole']), emp_id))
+              (data['name'], data['hire'], data['hire'], 
+               data['last_phys'] if data['phys_req'] else None,
+               data['last_psy'] if data['psy_req'] else None,
+               data['next_phys'] if data['phys_req'] else None,
+               data['next_psy'] if data['psy_req'] else None,
+               int(data['invalidity']), data['children'], int(data['sole']),
+               int(data['phys_req']), int(data['psy_req']), emp_id))
     c.execute('DELETE FROM prev_jobs WHERE emp_id=?', (emp_id,))
     for j in st.session_state.edit_jobs:
         c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
@@ -335,7 +360,8 @@ def main():
                    'last_psych_date':date.today().strftime('%Y-%m-%d'),
                    'next_physical_date':date.today().strftime('%Y-%m-%d'),
                    'next_psych_date':date.today().strftime('%Y-%m-%d'),
-                   'invalidity':False,'children_under15':0,'sole_caregiver':False}
+                   'invalidity':False,'children_under15':0,'sole_caregiver':False,
+                   'physical_required':True,'psych_required':True}
             if 'new_jobs' not in st.session_state:
                 st.session_state.new_jobs = []
         else:
@@ -343,6 +369,10 @@ def main():
             emp = next(e for e in emps if e['name']==sel)
             if 'edit_jobs' not in st.session_state:
                 st.session_state.edit_jobs = get_prev_jobs(emp['id'])
+            if 'physical_required' not in emp:
+                emp['physical_required'] = True
+            if 'psych_required' not in emp:
+                emp['psych_required'] = True
 
         with st.form('emp_form'):
             c1,c2,c3 = st.columns(3)
@@ -352,27 +382,70 @@ def main():
                                min_value=date(1960,1,1),
                                format="DD.MM.YYYY")
             invalidity = c3.checkbox('Invaliditet (+5)',value=bool(emp['invalidity']))
-            c4,c5,c6 = st.columns(3)
-            last_phys = c4.date_input('Zadnji fiz.',
-                                    value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date(),
-                                    min_value=date(1960,1,1),
-                                    format="DD.MM.YYYY")
-            last_psy = c5.date_input('Zadnji psih.',
-                                   value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date(),
-                                   min_value=date(1960,1,1),
-                                   format="DD.MM.YYYY")
+            
+            st.markdown('### Pregledi')
+            c4,c5 = st.columns(2)
+            with c4:
+                st.markdown('**Fizički pregled**')
+                phys_req = st.checkbox('Obavezan fizički pregled', value=bool(emp.get('physical_required', True)))
+                if phys_req:
+                    last_phys = st.date_input('Zadnji fiz.',
+                                         value=datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date(),
+                                         min_value=date(1960,1,1),
+                                         format="DD.MM.YYYY")
+                    next_phys = st.date_input('Sljedeći fiz.',
+                                         value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date(),
+                                         min_value=date(1960,1,1),
+                                         format="DD.MM.YYYY")
+                else:
+                    last_phys = datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date()
+                    next_phys = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date()
+            
+            with c5:
+                st.markdown('**Psihički pregled**')
+                psy_req = st.checkbox('Obavezan psihički pregled', value=bool(emp.get('psych_required', True)))
+                if psy_req:
+                    last_psy = st.date_input('Zadnji psih.',
+                                        value=datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date(),
+                                        min_value=date(1960,1,1),
+                                        format="DD.MM.YYYY")
+                    next_psy = st.date_input('Sljedeći psih.',
+                                        value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date(),
+                                        min_value=date(1960,1,1),
+                                        format="DD.MM.YYYY")
+                else:
+                    last_psy = datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date()
+                    next_psy = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date()
+            
+            c6,c7,c8 = st.columns(3)
             children = c6.number_input('Broj djece <15',min_value=0,value=int(emp['children_under15']))
-            c7,c8,c9 = st.columns(3)
-            next_phys = c7.date_input('Sljedeći fiz.',
-                                    value=datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date(),
-                                    min_value=date(1960,1,1),
-                                    format="DD.MM.YYYY")
-            next_psy = c8.date_input('Sljedeći psih.',
-                                   value=datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date(),
-                                   min_value=date(1960,1,1),
-                                   format="DD.MM.YYYY")
-            sole = c9.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
+            sole = c7.checkbox('Samohranitelj (+3)',value=bool(emp['sole_caregiver']))
+            
             submit = st.form_submit_button('Spremi zaposlenika')
+            
+            if submit:
+                data = {
+                    'name':name,
+                    'hire':hire.strftime('%Y-%m-%d'),
+                    'last_phys':last_phys.strftime('%Y-%m-%d'),
+                    'last_psy':last_psy.strftime('%Y-%m-%d'),
+                    'next_phys':next_phys.strftime('%Y-%m-%d'),
+                    'next_psy':next_psy.strftime('%Y-%m-%d'),
+                    'invalidity':invalidity,
+                    'children':children,
+                    'sole':sole,
+                    'phys_req':phys_req,
+                    'psy_req':psy_req
+                }
+                if new:
+                    add_employee(data)
+                    st.success('Dodano')
+                    st.session_state.new_jobs = []
+                else:
+                    edit_employee(emp['id'], data)
+                    st.success('Uređeno')
+                    st.session_state.edit_jobs = get_prev_jobs(emp['id'])
+                st.rerun()
 
         st.markdown('**Prethodno iskustvo**')
         if not new:
@@ -414,21 +487,6 @@ def main():
                     else:
                         st.session_state.edit_jobs.pop(idx)
                     st.rerun()
-
-        if submit:
-            data = {'name':name,'hire':hire.strftime('%Y-%m-%d'),'last_phys':last_phys.strftime('%Y-%m-%d'),
-                    'last_psy':last_psy.strftime('%Y-%m-%d'),'next_phys':next_phys.strftime('%Y-%m-%d'),
-                    'next_psy':next_psy.strftime('%Y-%m-%d'),'invalidity':invalidity,
-                    'children':children,'sole':sole}
-            if new:
-                add_employee(data)
-                st.success('Dodano')
-                st.session_state.new_jobs = []
-            else:
-                edit_employee(emp['id'], data)
-                st.success('Uređeno')
-                st.session_state.edit_jobs = get_prev_jobs(emp['id'])
-            st.rerun()
 
     else:
         sel = st.selectbox('Odaberi zaposlenika za brisanje',names,key='del_select')
