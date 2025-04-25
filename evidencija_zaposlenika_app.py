@@ -356,30 +356,82 @@ def main():
         st.dataframe(pd.DataFrame(rows),use_container_width=True)
 
     elif menu == 'Evidencija godišnjih':
-        sel = st.selectbox('Odaberi zaposlenika',names,key='leave_select')
+        # Reset form state when page loads
+        if 'leave_form_submitted' not in st.session_state:
+            st.session_state.leave_form_submitted = False
+        
+        sel = st.selectbox('Odaberi zaposlenika', names, key='leave_select')
         emp = next(e for e in emps if e['name']==sel)
         
         st.subheader('Evidencija korištenja godišnjeg')
-        start = st.date_input('Početak godišnjeg', date.today(), format="DD.MM.YYYY")
-        end = st.date_input('Kraj godišnjeg', date.today(), format="DD.MM.YYYY")
-        if st.button('Spremi godišnji',key='save_leave'):
-            add_leave_record(emp['id'],start.strftime('%Y-%m-%d'),end.strftime('%Y-%m-%d'))
-            st.success('Godišnji evidentiran')
-            st.rerun()
+        
+        # Form za unos godišnjeg
+        with st.form('leave_form'):
+            start = st.date_input('Početak godišnjeg', None, format="DD.MM.YYYY")
+            end = st.date_input('Kraj godišnjeg', None, format="DD.MM.YYYY")
+            
+            # Checkbox-ovi za preglede
+            st.markdown('### Obavezni pregledi')
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                phys_req = st.checkbox('Obavezan fizički pregled')
+                if phys_req:
+                    next_phys = st.date_input('Datum sljedećeg fizičkog pregleda', 
+                                            None,
+                                            format="DD.MM.YYYY")
+            
+            with col2:
+                psy_req = st.checkbox('Obavezan psihički pregled')
+                if psy_req:
+                    next_psy = st.date_input('Datum sljedećeg psihičkog pregleda',
+                                           None,
+                                           format="DD.MM.YYYY")
+            
+            submit_leave = st.form_submit_button('Spremi godišnji')
+            
+            if submit_leave:
+                if start and end:
+                    add_leave_record(emp['id'], start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d'))
+                    
+                    # Ažuriraj datume pregleda ako su označeni
+                    if phys_req or psy_req:
+                        data = {
+                            'name': emp['name'],
+                            'hire': emp['hire_date'],
+                            'last_phys': emp['last_physical_date'],
+                            'last_psy': emp['last_psych_date'],
+                            'next_phys': next_phys.strftime('%Y-%m-%d') if phys_req else emp['next_physical_date'],
+                            'next_psy': next_psy.strftime('%Y-%m-%d') if psy_req else emp['next_psych_date'],
+                            'invalidity': emp['invalidity'],
+                            'children': emp['children_under15'],
+                            'sole': emp['sole_caregiver'],
+                            'phys_req': emp['physical_required'],
+                            'psy_req': emp['psych_required']
+                        }
+                        edit_employee(emp['id'], data)
+                    
+                    st.success('Godišnji evidentiran')
+                    st.session_state.leave_form_submitted = True
+                    st.rerun()
+                else:
+                    st.error('Molimo unesite datum početka i kraja godišnjeg')
         
         st.subheader('Dodaj/Oduzmi dane godišnjeg')
-        days = st.number_input('Broj dana', min_value=1, value=1)
-        note = st.text_input('Napomena (npr. "Neiskorišteni GO iz 2023")', key='note_input')
-        
-        col1, col2, col3 = st.columns([1,1,4])
-        if col1.button('Dodaj', key='btn_add_days'):
-            add_days_adjustment(emp['id'], days, 'add', note)
-            st.success(f'Dodano {days} dana')
-            st.rerun()
-        if col2.button('Oduzmi', key='btn_subtract_days'):
-            add_days_adjustment(emp['id'], days, 'subtract', note)
-            st.success(f'Oduzeto {days} dana')
-            st.rerun()
+        # Form za dodavanje/oduzimanje dana
+        with st.form('adjustment_form'):
+            days = st.number_input('Broj dana', min_value=1, value=1)
+            note = st.text_input('Napomena (npr. "Neiskorišteni GO iz 2023")', value="")
+            
+            col1, col2 = st.columns(2)
+            add = col1.form_submit_button('Dodaj')
+            subtract = col2.form_submit_button('Oduzmi')
+            
+            if add or subtract:
+                operation = 'add' if add else 'subtract'
+                add_days_adjustment(emp['id'], days, operation, note)
+                st.success(f'{"Dodano" if add else "Oduzeto"} {days} dana')
+                st.rerun()
         
         st.subheader('Evidencija')
         leave_records = get_leave_records(emp['id'])
