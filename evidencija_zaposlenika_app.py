@@ -233,20 +233,31 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
               (emp_id, today, today, days_value, note))
     conn.commit()
 
-def delete_leave_record(emp_id, date, adjustment=None):
+def delete_leave_record(emp_id, date, adjustment=None, note=None):
     """
     Briše zapis godišnjeg odmora.
     emp_id: ID zaposlenika
     date: datum zapisa
     adjustment: ako je None, briše običan zapis, inače briše zapis prilagodbe
+    note: napomena za prilagodbu (koristi se za preciznije brisanje)
     """
     try:
         if adjustment is None:
-            c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND days_adjustment IS NULL',
+            # Brisanje običnog zapisa godišnjeg
+            c.execute('''DELETE FROM leave_records 
+                        WHERE emp_id=? AND start_date=? AND days_adjustment IS NULL''',
                      (emp_id, date))
         else:
-            c.execute('DELETE FROM leave_records WHERE emp_id=? AND start_date=? AND days_adjustment=?',
-                     (emp_id, date, adjustment))
+            # Brisanje zapisa prilagodbe s točnom vrijednošću adjustment-a
+            if note:
+                c.execute('''DELETE FROM leave_records 
+                           WHERE emp_id=? AND start_date=? AND days_adjustment=? AND note=?''',
+                         (emp_id, date, adjustment, note))
+            else:
+                c.execute('''DELETE FROM leave_records 
+                           WHERE emp_id=? AND start_date=? AND days_adjustment=? AND (note IS NULL OR note="")''',
+                         (emp_id, date, adjustment))
+        
         conn.commit()
         return c.rowcount > 0
     except Exception as e:
@@ -366,7 +377,7 @@ def main():
                 if lr['adjustment'] is None:
                     success = delete_leave_record(emp['id'], parse_date(lr['start']))
                 else:
-                    success = delete_leave_record(emp['id'], lr['start'], lr['adjustment'])
+                    success = delete_leave_record(emp['id'], lr['start'], lr['adjustment'], lr['note'])
                 
                 if success:
                     st.session_state['delete_success'] = True
