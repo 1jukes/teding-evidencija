@@ -148,8 +148,9 @@ def get_prev_jobs(emp_id):
     return [{'company':r[0],'start':format_date(r[1]),'end':format_date(r[2])} for r in c.fetchall()]
 
 def get_leave_records(emp_id):
-    c.execute('SELECT start_date, end_date, days_adjustment, note FROM leave_records WHERE emp_id=?', (emp_id,))
-    return [{'start':format_date(r[0]), 'end':format_date(r[1]), 'adjustment':r[2], 'note':r[3]} for r in c.fetchall()]
+    c.execute('SELECT id, start_date, end_date, days_adjustment, note FROM leave_records WHERE emp_id=?', (emp_id,))
+    return [{'id': r[0], 'start': format_date(r[1]), 'end': format_date(r[2]), 
+             'adjustment': r[3], 'note': r[4]} for r in c.fetchall()]
 
 # Business logic
 def compute_tenure(hire):
@@ -233,33 +234,14 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
               (emp_id, today, today, days_value, note))
     conn.commit()
 
-def delete_leave_record(emp_id, date, adjustment=None, note=None):
+def delete_leave_record(emp_id, record_id):
     """
-    Briše zapis godišnjeg odmora.
-    emp_id: ID zaposlenika
-    date: datum zapisa
-    adjustment: ako je None, briše običan zapis, inače briše zapis prilagodbe
-    note: napomena za prilagodbu (koristi se za preciznije brisanje)
+    Briše zapis godišnjeg odmora prema ID-u zapisa.
     """
     try:
-        if adjustment is None:
-            # Brisanje običnog zapisa godišnjeg
-            c.execute('''DELETE FROM leave_records 
-                        WHERE emp_id=? AND start_date=? AND days_adjustment IS NULL''',
-                     (emp_id, date))
-        else:
-            # Brisanje zapisa prilagodbe s točnom vrijednošću adjustment-a
-            if note:
-                c.execute('''DELETE FROM leave_records 
-                           WHERE emp_id=? AND start_date=? AND days_adjustment=? AND note=?''',
-                         (emp_id, date, adjustment, note))
-            else:
-                c.execute('''DELETE FROM leave_records 
-                           WHERE emp_id=? AND start_date=? AND days_adjustment=? AND (note IS NULL OR note="")''',
-                         (emp_id, date, adjustment))
-        
+        c.execute('DELETE FROM leave_records WHERE emp_id=? AND id=?', (emp_id, record_id))
         conn.commit()
-        return c.rowcount > 0
+        return True
     except Exception as e:
         print(f"Error deleting record: {e}")
         return False
@@ -358,7 +340,7 @@ def main():
         leave_records = get_leave_records(emp['id'])
         total_days = 0
         
-        for idx, lr in enumerate(leave_records):
+        for lr in leave_records:
             col1, col2 = st.columns([3, 1])
             if lr['adjustment'] is None:
                 start_date = datetime.strptime(parse_date(lr['start']), '%Y-%m-%d').date()
@@ -372,23 +354,9 @@ def main():
                 note_text = f" - {lr['note']}" if lr['note'] else ""
                 col1.write(f"- {txt} {abs(lr['adjustment'])} dana ({lr['start']}){note_text}")
             
-            delete_clicked = col2.button('Obriši', key=f"del_leave_{idx}")
-            if delete_clicked:
-                if lr['adjustment'] is None:
-                    success = delete_leave_record(emp['id'], parse_date(lr['start']))
-                else:
-                    success = delete_leave_record(emp['id'], lr['start'], lr['adjustment'], lr['note'])
-                
-                if success:
-                    st.session_state['delete_success'] = True
+            if col2.button('Obriši', key=f"del_leave_{lr['id']}"):
+                if delete_leave_record(emp['id'], lr['id']):
                     st.rerun()
-                else:
-                    st.error('Nije moguće obrisati zapis')
-        
-        # Prikaži poruku o uspjehu nakon rerun-a
-        if st.session_state.get('delete_success'):
-            st.success('Zapis je obrisan')
-            del st.session_state['delete_success']
         
         leave_allowance = compute_leave(emp['hire_date'], emp['invalidity'], 
                                       emp['children_under15'], emp['sole_caregiver'])
