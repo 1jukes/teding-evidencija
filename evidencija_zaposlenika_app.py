@@ -481,26 +481,29 @@ def main():
                 if not name or not hire:
                     st.error('Molimo unesite ime i datum zaposlenja')
                 else:
-                    data = {
-                        'name': name,
-                        'hire': hire.strftime('%Y-%m-%d'),
-                        'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
-                        'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
-                        'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
-                        'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
-                        'invalidity': invalidity,
-                        'children': children,
-                        'sole': sole,
-                        'phys_req': False,
-                        'psy_req': False
-                    }
-                    
-                    if add_employee(data):
-                        st.success('Zaposlenik uspješno dodan')
-                        st.session_state.new_jobs = []
-                        st.rerun()
-                    else:
-                        st.error('Greška prilikom dodavanja zaposlenika')
+                    try:
+                        data = {
+                            'name': name,
+                            'hire': hire.strftime('%Y-%m-%d'),
+                            'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
+                            'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
+                            'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
+                            'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
+                            'invalidity': invalidity,
+                            'children': children,
+                            'sole': sole,
+                            'phys_req': bool(last_phys or next_phys),
+                            'psy_req': bool(last_psy or next_psy)
+                        }
+                        
+                        if add_employee(data):
+                            st.success('Zaposlenik uspješno dodan')
+                            st.session_state.new_jobs = []
+                            st.rerun()
+                        else:
+                            st.error('Greška prilikom dodavanja zaposlenika')
+                    except Exception as e:
+                        st.error(f'Greška prilikom spremanja: {str(e)}')
 
     elif menu == 'Uredi zaposlenika':
         sel = st.selectbox('Odaberi zaposlenika',names,key='edit_select')
@@ -517,26 +520,46 @@ def main():
             c3,c4 = st.columns(2)
             with c3:
                 st.markdown('**Fizički pregled**')
+                try:
+                    last_phys_value = datetime.strptime(emp['last_physical_date'],'%Y-%m-%d').date() if emp['last_physical_date'] else None
+                except:
+                    last_phys_value = None
+                    
+                try:
+                    next_phys_value = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else None
+                except:
+                    next_phys_value = None
+                    
                 last_phys = st.date_input('Zadnji fizički pregled',
-                                     value=None,
+                                     value=last_phys_value,
                                      min_value=date(1960,1,1),
                                      format="DD.MM.YYYY",
                                      key='edit_last_phys_date')
                 next_phys = st.date_input('Sljedeći fizički pregled',
-                                     value=None,
+                                     value=next_phys_value,
                                      min_value=date.today(),
                                      format="DD.MM.YYYY",
                                      key='edit_next_phys_date')
             
             with c4:
                 st.markdown('**Psihički pregled**')
+                try:
+                    last_psy_value = datetime.strptime(emp['last_psych_date'],'%Y-%m-%d').date() if emp['last_psych_date'] else None
+                except:
+                    last_psy_value = None
+                    
+                try:
+                    next_psy_value = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else None
+                except:
+                    next_psy_value = None
+                    
                 last_psy = st.date_input('Zadnji psihički pregled',
-                                    value=None,
+                                    value=last_psy_value,
                                     min_value=date(1960,1,1),
                                     format="DD.MM.YYYY",
                                     key='edit_last_psy_date')
                 next_psy = st.date_input('Sljedeći psihički pregled',
-                                    value=None,
+                                    value=next_psy_value,
                                     min_value=date.today(),
                                     format="DD.MM.YYYY",
                                     key='edit_next_psy_date')
@@ -557,22 +580,25 @@ def main():
             submit = st.form_submit_button('Spremi promjene')
             
             if submit:
-                data = {
-                    'name': name,
-                    'hire': hire.strftime('%Y-%m-%d'),
-                    'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
-                    'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
-                    'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
-                    'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
-                    'invalidity': invalidity,
-                    'children': children,
-                    'sole': sole,
-                    'phys_req': False,
-                    'psy_req': False
-                }
-                edit_employee(emp['id'], data)
-                st.success('Uređeno')
-                st.rerun()
+                try:
+                    data = {
+                        'name': name,
+                        'hire': hire.strftime('%Y-%m-%d'),
+                        'last_phys': last_phys.strftime('%Y-%m-%d') if last_phys else None,
+                        'last_psy': last_psy.strftime('%Y-%m-%d') if last_psy else None,
+                        'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
+                        'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
+                        'invalidity': invalidity,
+                        'children': children,
+                        'sole': sole,
+                        'phys_req': bool(last_phys or next_phys),
+                        'psy_req': bool(last_psy or next_psy)
+                    }
+                    edit_employee(emp['id'], data)
+                    st.success('Uređeno')
+                    st.rerun()
+                except Exception as e:
+                    st.error(f'Greška prilikom spremanja: {str(e)}')
 
     elif menu == 'Obriši zaposlenika':
         sel = st.selectbox('Odaberi zaposlenika za brisanje',names,key='del_select')
