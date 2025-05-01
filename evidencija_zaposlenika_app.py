@@ -365,38 +365,41 @@ def main():
 
         # Jednostavnija forma bez kolona
         with st.form("godisnji_forma"):
-            start_date = st.date_input(
-                "Početak godišnjeg",
-                value=None,
-                format="DD.MM.YYYY."
-            )
-            
-            end_date = st.date_input(
-                "Kraj godišnjeg",
-                value=None,
-                format="DD.MM.YYYY."
-            )
-            
-            # Submit button mora biti zadnji element u formi
-            submitted = st.form_submit_button("Dodaj godišnji")
-            
-            if submitted:
-                if start_date and end_date:
-                    if start_date <= end_date:
-                        try:
-                            add_leave_record(
-                                emp['id'], 
-                                start_date.strftime('%Y-%m-%d'),
-                                end_date.strftime('%Y-%m-%d')
-                            )
-                            st.success("✅ Godišnji uspješno dodan!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Greška: {str(e)}")
+            try:
+                start_date = st.date_input(
+                    "Početak godišnjeg",
+                    value=None,
+                    format="DD.MM.YYYY."
+                )
+                
+                end_date = st.date_input(
+                    "Kraj godišnjeg",
+                    value=None,
+                    format="DD.MM.YYYY."
+                )
+                
+                # Submit button mora biti zadnji element u formi
+                submitted = st.form_submit_button("Dodaj godišnji")
+                
+                if submitted:
+                    if start_date and end_date:
+                        if start_date <= end_date:
+                            try:
+                                # Pretvaranje datuma u string format za bazu
+                                start_str = start_date.strftime('%Y-%m-%d')
+                                end_str = end_date.strftime('%Y-%m-%d')
+                                
+                                add_leave_record(emp['id'], start_str, end_str)
+                                st.success("✅ Godišnji uspješno dodan!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Greška pri spremanju: {str(e)}")
+                        else:
+                            st.error("❌ Datum početka mora biti prije ili jednak datumu završetka!")
                     else:
-                        st.error("❌ Datum početka mora biti prije ili jednak datumu završetka!")
-                else:
-                    st.error("❌ Molimo unesite oba datuma!")
+                        st.error("❌ Molimo unesite oba datuma!")
+            except Exception as e:
+                st.error(f"❌ Greška pri unosu datuma: {str(e)}")
 
         # Prikaz postojećih godišnjih (izvan forme)
         leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
