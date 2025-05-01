@@ -25,6 +25,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Konfiguracija za datumske unose na hrvatskom
+locale.setlocale(locale.LC_TIME, 'hr_HR.UTF-8')
+st.markdown("""
+<style>
+/* Prijevod kalendara na hrvatski */
+button[data-baseweb="calendar"] div {
+    font-family: "Source Sans Pro", sans-serif;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Postavljanje početka tjedna na ponedjeljak
+if 'start_of_week' not in st.session_state:
+    st.session_state['start_of_week'] = 1  # 0 = nedjelja, 1 = ponedjeljak
+
 # Funkcije za formatiranje datuma
 def format_date(date_str):
     """Pretvara datum iz YYYY-MM-DD u DD.MM.YYYY format"""
@@ -327,32 +342,31 @@ def main():
         # Ručno podešavanje dana
         st.markdown("### Ručno podešavanje dana")
         with st.container():
-            col1, col2, col3, col4 = st.columns([2,4,2,2])
+            col1, col2 = st.columns([1,3])
             
             with col1:
                 days = st.number_input("Broj dana", min_value=1, value=1)
+                st.write("")  # Prazan prostor
+                col3, col4 = st.columns(2)
+                with col3:
+                    if st.button("➕ Dodaj", use_container_width=True, type="secondary"):
+                        try:
+                            add_days_adjustment(emp['id'], days, 'add', note)
+                            st.success("✅ Dodano!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Greška: {str(e)}")
+                with col4:
+                    if st.button("➖ Oduzmi", use_container_width=True, type="secondary"):
+                        try:
+                            add_days_adjustment(emp['id'], days, 'subtract', note)
+                            st.success("✅ Oduzeto!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Greška: {str(e)}")
+            
             with col2:
                 note = st.text_input("Napomena")
-            with col3:
-                if st.button("➕ Dodaj", 
-                           use_container_width=True,
-                           type="secondary"):
-                    try:
-                        add_days_adjustment(emp['id'], days, 'add', note)
-                        st.success("✅ Dodano!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Greška: {str(e)}")
-            with col4:
-                if st.button("➖ Oduzmi", 
-                           use_container_width=True,
-                           type="secondary"):
-                    try:
-                        add_days_adjustment(emp['id'], days, 'subtract', note)
-                        st.success("✅ Oduzeto!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Greška: {str(e)}")
 
         # Evidencija korištenja
         st.markdown("### Evidencija korištenja")
@@ -362,9 +376,15 @@ def main():
         with st.form("add_leave"):
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input("Početak godišnjeg")
+                start_date = st.date_input("Početak godišnjeg", 
+                    value=None,
+                    format="DD.MM.YYYY",
+                    locale="hr")
             with col2:
-                end_date = st.date_input("Kraj godišnjeg")
+                end_date = st.date_input("Kraj godišnjeg", 
+                    value=None,
+                    format="DD.MM.YYYY",
+                    locale="hr")
             
             if st.form_submit_button("Dodaj godišnji", type="primary"):
                 try:
