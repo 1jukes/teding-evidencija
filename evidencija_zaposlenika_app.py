@@ -9,13 +9,34 @@ import base64
 import time
 
 # Postavljanje hrvatskog lokalnog vremena
-try:
-    locale.setlocale(locale.LC_ALL, 'hr_HR.UTF-8')
-except:
+def setup_locale():
+    locales_to_try = [
+        'hr_HR.UTF-8',
+        'hr_HR.utf8',
+        'Croatian.UTF-8',
+        'Croatian',
+        'hr_HR',
+        'hr'
+    ]
+    
+    for loc in locales_to_try:
+        try:
+            locale.setlocale(locale.LC_ALL, loc)
+            return True
+        except locale.Error:
+            continue
+    
+    # Ako nijedan locale nije uspio, postavimo default
     try:
-        locale.setlocale(locale.LC_ALL, 'Croatian.UTF-8')
-    except:
         locale.setlocale(locale.LC_ALL, '')
+        return True
+    except:
+        pass
+    
+    return False
+
+# Pokušaj postaviti hrvatski locale
+setup_locale()
 
 # Konfiguracija stranice
 st.set_page_config(
