@@ -355,21 +355,28 @@ def main():
         with st.form("add_leave"):
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input("Početak godišnjeg", 
+                start_date = st.date_input(
+                    "Početak godišnjeg",
                     value=None,
-                    format="DD.MM.YYYY",
-                    locale="hr")
+                    key="start_date"
+                )
             with col2:
-                end_date = st.date_input("Kraj godišnjeg", 
+                end_date = st.date_input(
+                    "Kraj godišnjeg",
                     value=None,
-                    format="DD.MM.YYYY",
-                    locale="hr")
+                    key="end_date"
+                )
             
-            if st.form_submit_button("Dodaj godišnji", type="primary"):
+            # Dodajemo submit button koji je nedostajao
+            submitted = st.form_submit_button("Dodaj godišnji")
+            
+            if submitted:
                 try:
-                    add_leave_record(emp['id'], 
-                                   start_date.strftime('%Y-%m-%d'),
-                                   end_date.strftime('%Y-%m-%d'))
+                    add_leave_record(
+                        emp['id'], 
+                        start_date.strftime('%Y-%m-%d'),
+                        end_date.strftime('%Y-%m-%d')
+                    )
                     st.success("✅ Godišnji uspješno dodan!")
                     st.rerun()
                 except Exception as e:
