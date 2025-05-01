@@ -435,6 +435,12 @@ def main():
         st.markdown('### Pregledi')
         c3,c4 = st.columns(2)
         
+        # Inicijalizacija stanja za preglede ako ne postoji
+        if 'phys_type' not in st.session_state:
+            st.session_state.phys_type = 'Nema pregled'
+        if 'psy_type' not in st.session_state:
+            st.session_state.psy_type = 'Nema pregled'
+        
         with c3:
             st.markdown('**Fizički pregled**')
             phys_type = st.selectbox(
@@ -443,21 +449,18 @@ def main():
                 key='phys_type'
             )
             
-            if phys_type == 'Ima pregled':
-                next_phys = st.text_input(
+            next_phys = None
+            if st.session_state.phys_type == 'Ima pregled':
+                next_phys_input = st.text_input(
                     'Datum sljedećeg pregleda (DD.MM.YYYY)',
                     value="",
                     key='next_phys_date'
                 )
-                # Konvertiramo datum ako je unesen
-                if next_phys:
+                if next_phys_input:
                     try:
-                        next_phys = parse_date(next_phys)  # Pretvaramo u YYYY-MM-DD format za bazu
+                        next_phys = parse_date(next_phys_input)
                     except:
                         st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-                        next_phys = None
-            else:
-                next_phys = None
         
         with c4:
             st.markdown('**Psihički pregled**')
@@ -467,21 +470,18 @@ def main():
                 key='psy_type'
             )
             
-            if psy_type == 'Ima pregled':
-                next_psy = st.text_input(
+            next_psy = None
+            if st.session_state.psy_type == 'Ima pregled':
+                next_psy_input = st.text_input(
                     'Datum sljedećeg pregleda (DD.MM.YYYY)',
                     value="",
                     key='next_psy_date'
                 )
-                # Konvertiramo datum ako je unesen
-                if next_psy:
+                if next_psy_input:
                     try:
-                        next_psy = parse_date(next_psy)  # Pretvaramo u YYYY-MM-DD format za bazu
+                        next_psy = parse_date(next_psy_input)
                     except:
                         st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-                        next_psy = None
-            else:
-                next_psy = None
         
         st.markdown('### Prethodno iskustvo')
         prev_jobs = get_prev_jobs(emp['id'])
@@ -575,6 +575,13 @@ def main():
             
             st.markdown('### Pregledi')
             c3,c4 = st.columns(2)
+            
+            # Inicijalizacija stanja za preglede ako ne postoji
+            if 'phys_type' not in st.session_state:
+                st.session_state.phys_type = 'Nema pregled'
+            if 'psy_type' not in st.session_state:
+                st.session_state.psy_type = 'Nema pregled'
+            
             with c3:
                 st.markdown('**Fizički pregled**')
                 phys_type = st.selectbox(
@@ -583,21 +590,18 @@ def main():
                     key='phys_type'
                 )
                 
-                if phys_type == 'Ima pregled':
-                    next_phys = st.text_input(
+                next_phys = None
+                if st.session_state.phys_type == 'Ima pregled':
+                    next_phys_input = st.text_input(
                         'Datum sljedećeg pregleda (DD.MM.YYYY)',
                         value="",
                         key='next_phys_date'
                     )
-                    # Konvertiramo datum ako je unesen
-                    if next_phys:
+                    if next_phys_input:
                         try:
-                            next_phys = parse_date(next_phys)  # Pretvaramo u YYYY-MM-DD format za bazu
+                            next_phys = parse_date(next_phys_input)
                         except:
                             st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-                            next_phys = None
-                else:
-                    next_phys = None
             
             with c4:
                 st.markdown('**Psihički pregled**')
@@ -607,21 +611,18 @@ def main():
                     key='psy_type'
                 )
                 
-                if psy_type == 'Ima pregled':
-                    next_psy = st.text_input(
+                next_psy = None
+                if st.session_state.psy_type == 'Ima pregled':
+                    next_psy_input = st.text_input(
                         'Datum sljedećeg pregleda (DD.MM.YYYY)',
                         value="",
                         key='next_psy_date'
                     )
-                    # Konvertiramo datum ako je unesen
-                    if next_psy:
+                    if next_psy_input:
                         try:
-                            next_psy = parse_date(next_psy)  # Pretvaramo u YYYY-MM-DD format za bazu
+                            next_psy = parse_date(next_psy_input)
                         except:
                             st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-                            next_psy = None
-                else:
-                    next_psy = None
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
@@ -701,59 +702,55 @@ def main():
             st.markdown('### Pregledi')
             c3,c4 = st.columns(2)
             
+            # Inicijalizacija stanja za preglede ako ne postoji
+            if 'edit_phys_type' not in st.session_state:
+                st.session_state.edit_phys_type = 'Ima pregled' if emp['next_physical_date'] else 'Nema pregled'
+            if 'edit_psy_type' not in st.session_state:
+                st.session_state.edit_psy_type = 'Ima pregled' if emp['next_psych_date'] else 'Nema pregled'
+            
             with c3:
                 st.markdown('**Fizički pregled**')
-                current_phys_status = 'Ima pregled' if emp['next_physical_date'] else 'Nema pregled'
                 phys_type = st.selectbox(
                     'Status fizičkog pregleda',
                     ['Nema pregled', 'Ima pregled'],
-                    index=1 if current_phys_status == 'Ima pregled' else 0,
                     key='edit_phys_type'
                 )
                 
-                if phys_type == 'Ima pregled':
+                next_phys = None
+                if st.session_state.edit_phys_type == 'Ima pregled':
                     current_date = format_date(emp['next_physical_date']) if emp['next_physical_date'] else ""
-                    next_phys = st.text_input(
+                    next_phys_input = st.text_input(
                         'Datum sljedećeg pregleda (DD.MM.YYYY)',
                         value=current_date,
                         key='edit_next_phys_date'
                     )
-                    # Konvertiramo datum ako je unesen
-                    if next_phys:
+                    if next_phys_input:
                         try:
-                            next_phys = parse_date(next_phys)  # Pretvaramo u YYYY-MM-DD format za bazu
+                            next_phys = parse_date(next_phys_input)
                         except:
                             st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-                            next_phys = None
-                else:
-                    next_phys = None
             
             with c4:
                 st.markdown('**Psihički pregled**')
-                current_psy_status = 'Ima pregled' if emp['next_psych_date'] else 'Nema pregled'
                 psy_type = st.selectbox(
                     'Status psihičkog pregleda',
                     ['Nema pregled', 'Ima pregled'],
-                    index=1 if current_psy_status == 'Ima pregled' else 0,
                     key='edit_psy_type'
                 )
                 
-                if psy_type == 'Ima pregled':
+                next_psy = None
+                if st.session_state.edit_psy_type == 'Ima pregled':
                     current_date = format_date(emp['next_psych_date']) if emp['next_psych_date'] else ""
-                    next_psy = st.text_input(
+                    next_psy_input = st.text_input(
                         'Datum sljedećeg pregleda (DD.MM.YYYY)',
                         value=current_date,
                         key='edit_next_psy_date'
                     )
-                    # Konvertiramo datum ako je unesen
-                    if next_psy:
+                    if next_psy_input:
                         try:
-                            next_psy = parse_date(next_psy)  # Pretvaramo u YYYY-MM-DD format za bazu
+                            next_psy = parse_date(next_psy_input)
                         except:
                             st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-                            next_psy = None
-                else:
-                    next_psy = None
 
             st.markdown('### Dodatne informacije')
             c5, c6, c7, c8 = st.columns([1,1,1,3])
