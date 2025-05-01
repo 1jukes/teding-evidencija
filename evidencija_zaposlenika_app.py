@@ -361,25 +361,32 @@ def main():
 
         # Evidencija korištenja
         st.markdown("### Evidencija korištenja")
-        with st.form("add_leave"):
-            st.subheader("Dodaj novi godišnji")
+
+        # Forma za dodavanje novog godišnjeg
+        with st.form(key="add_leave_form"):  # Dodali smo jedinstveni ključ formi
+            st.markdown("#### Dodaj novi godišnji")
+            
             col1, col2 = st.columns(2)
             with col1:
                 start_date = st.date_input(
                     "Početak godišnjeg",
                     value=None,
-                    format="DD.MM.YYYY."
+                    format="DD.MM.YYYY.",
+                    key="start_date_input"  # Dodali smo jedinstveni ključ
                 )
             with col2:
                 end_date = st.date_input(
                     "Kraj godišnjeg",
                     value=None,
-                    format="DD.MM.YYYY."
+                    format="DD.MM.YYYY.",
+                    key="end_date_input"  # Dodali smo jedinstveni ključ
                 )
             
-            submitted = st.form_submit_button("📅 Dodaj godišnji")
+            # Submit button mora biti direktno unutar forme, ne unutar kolona
+            submit_button = st.form_submit_button(label="📅 Dodaj godišnji")
             
-            if submitted:
+            # Logika nakon submita
+            if submit_button:
                 if start_date and end_date:
                     if start_date <= end_date:
                         try:
@@ -396,11 +403,12 @@ def main():
                         st.error("❌ Datum početka mora biti prije ili jednak datumu završetka!")
                 else:
                     st.error("❌ Molimo unesite oba datuma!")
-        
-        # Prikaz evidencije korištenja
+
+        # Prikaz evidencije korištenja (izvan forme)
         leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
         
         if leave_usage_records:
+            st.markdown("#### Evidencija korištenja godišnjeg")
             for record in sorted(leave_usage_records, key=lambda x: parse_date(x['start']), reverse=True):
                 col1, col2, col3, col4 = st.columns([2,2,2,1])
                 with col1:
