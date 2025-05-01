@@ -690,146 +690,111 @@ def main():
                     st.rerun()
 
     elif menu == 'Uredi zaposlenika':
-        sel = st.selectbox('Odaberi zaposlenika',names,key='edit_select')
-        emp = next(e for e in emps if e['name']==sel)
-        
-        with st.form('edit_form'):
-            st.markdown('### Osnovni podaci')
-            name = st.text_input('Ime i prezime', value=emp['name'])
-            oib = st.text_input('OIB', value=emp['oib'] or "")
-            address = st.text_input('Adresa', value=emp['address'] or "")
-            birth_date = st.date_input('Datum rođenja',
-                               value=datetime.strptime(emp['birth_date'],'%Y-%m-%d').date(),
-                               min_value=date(1960,1,1),
-                               format="DD.MM.YYYY")
-            hire = st.date_input('Datum zaposlenja',
-                               value=datetime.strptime(emp['hire_date'],'%Y-%m-%d').date(),
-                               min_value=date(1960,1,1),
-                               format="DD.MM.YYYY")
+        st.subheader("Uredi zaposlenika")
+        employees = get_employees()
+        if employees:
+            emp_names = [emp['name'] for emp in employees]
+            selected_emp = st.selectbox("Odaberi zaposlenika", emp_names)
             
-            st.markdown('### Pregledi')
-            c3,c4 = st.columns(2)
-            
-            # Inicijalizacija stanja za preglede ako ne postoji
-            if 'edit_phys_type' not in st.session_state:
-                st.session_state.edit_phys_type = 'Ima pregled' if emp['next_physical_date'] else 'Nema pregled'
-            if 'edit_psy_type' not in st.session_state:
-                st.session_state.edit_psy_type = 'Ima pregled' if emp['next_psych_date'] else 'Nema pregled'
-            
-            with c3:
-                st.markdown('**Fizički pregled**')
-                phys_type = st.selectbox(
-                    'Status fizičkog pregleda',
-                    ['Nema pregled', 'Ima pregled'],
-                    key='edit_phys_type'
-                )
-                
-                next_phys = None
-                if st.session_state.edit_phys_type == 'Ima pregled':
-                    current_date = format_date(emp['next_physical_date']) if emp['next_physical_date'] else ""
-                    next_phys_input = st.text_input(
-                        'Datum sljedećeg pregleda (DD.MM.YYYY)',
-                        value=current_date,
-                        key='edit_next_phys_date'
-                    )
-                    if next_phys_input:
+            emp = next((e for e in employees if e['name'] == selected_emp), None)
+            if emp:
+                with st.form("edit_employee_form"):
+                    name = st.text_input("Ime i prezime", value=emp['name'])
+                    oib = st.text_input("OIB", value=emp['oib'] if emp['oib'] else '')
+                    address = st.text_input("Adresa", value=emp['address'] if emp['address'] else '')
+                    
+                    # Formatiranje datuma rođenja za prikaz
+                    default_birth_date = None
+                    if emp['birth_date']:
                         try:
-                            next_phys = parse_date(next_phys_input)
+                            default_birth_date = datetime.strptime(emp['birth_date'], '%Y-%m-%d').date()
                         except:
-                            st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-            
-            with c4:
-                st.markdown('**Psihički pregled**')
-                psy_type = st.selectbox(
-                    'Status psihičkog pregleda',
-                    ['Nema pregled', 'Ima pregled'],
-                    key='edit_psy_type'
-                )
-                
-                next_psy = None
-                if st.session_state.edit_psy_type == 'Ima pregled':
-                    current_date = format_date(emp['next_psych_date']) if emp['next_psych_date'] else ""
-                    next_psy_input = st.text_input(
-                        'Datum sljedećeg pregleda (DD.MM.YYYY)',
-                        value=current_date,
-                        key='edit_next_psy_date'
-                    )
-                    if next_psy_input:
-                        try:
-                            next_psy = parse_date(next_psy_input)
-                        except:
-                            st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
-
-            st.markdown('### Dodatne informacije')
-            c5, c6, c7, c8 = st.columns([1,1,1,3])
-            invalidity = c5.checkbox('Invaliditet (+5)', value=bool(emp['invalidity']))
-            children = c6.number_input('Broj djece <15',
-                                     min_value=0,
-                                     max_value=10,
-                                     value=int(emp['children_under15']),
-                                     step=1,
-                                     key='children_count_edit',
-                                     label_visibility="collapsed")
-            c6.caption('Broj djece <15')
-            sole = c7.checkbox('Samohranitelj (+3)', value=bool(emp['sole_caregiver']))
-
-            submit = st.form_submit_button('Spremi promjene')
-            
-            if submit:
-                try:
-                    data = {
-                        'name': name,
-                        'oib': oib,
-                        'address': address,
-                        'birth_date': birth_date.strftime('%Y-%m-%d'),
-                        'hire': hire.strftime('%Y-%m-%d'),
-                        'next_phys': next_phys,
-                        'next_psy': next_psy,
-                        'invalidity': invalidity,
-                        'children': children,
-                        'sole': sole,
-                        'phys_req': phys_type == 'Ima pregled',
-                        'psy_req': psy_type == 'Ima pregled'
-                    }
-                    if edit_employee(emp['id'], data):
-                        st.success('Uređeno')
-                        st.rerun()
-                    else:
-                        st.error('Greška prilikom uređivanja')
-                except Exception as e:
-                    st.error(f'Greška prilikom spremanja: {str(e)}')
-
-        st.markdown('**Prethodno iskustvo**')
-        st.markdown('**Postojeća iskustva:**')
-        existing_jobs = get_prev_jobs(emp['id'])
-        for idx, j in enumerate(existing_jobs):
-            col1, col2 = st.columns([3, 1])
-            col1.write(f"• {j['company']}: {j['start']} ➜ {j['end']}")
-            if col2.button('Obriši', key=f"del_existing_job_{idx}"):
-                delete_prev_job(emp['id'], j['company'], parse_date(j['start']), parse_date(j['end']))
-                st.success(f"Obrisano iskustvo iz {j['company']}")
-                st.rerun()
-        if existing_jobs:
-            st.markdown('---')
-        
-        comp = st.text_input('Tvrtka',key='comp_edit')
-        st_d = st.date_input('Početak', date.today(), format="DD.MM.YYYY", key='st_edit')
-        en_d = st.date_input('Kraj', date.today(), format="DD.MM.YYYY", key='en_edit')
-        if st.button('Dodaj iskustvo',key='add_job_edit_btn'):
-            rec = {'company':comp,'start':st_d.strftime('%Y-%m-%d'),'end':en_d.strftime('%Y-%m-%d')}
-            if 'edit_jobs' not in st.session_state:
-                st.session_state.edit_jobs = []
-            st.session_state.edit_jobs.append(rec)
-            st.rerun()
-
-        if 'edit_jobs' in st.session_state and st.session_state.edit_jobs:
-            st.markdown('**Nova iskustva za dodati:**')
-            for idx, j in enumerate(st.session_state.edit_jobs):
-                col1, col2 = st.columns([3, 1])
-                col1.write(f"• {j['company']}: {format_date(j['start'])} ➜ {format_date(j['end'])}")
-                if col2.button('Obriši', key=f"del_edit_job_{idx}"):
-                    st.session_state.edit_jobs.pop(idx)
-                    st.rerun()
+                            default_birth_date = None
+                    
+                    birth_date = st.date_input("Datum rođenja", 
+                                             value=default_birth_date,
+                                             format="DD.MM.YYYY")
+                    
+                    # Formatiranje datuma zaposlenja za prikaz
+                    default_hire_date = datetime.strptime(emp['hire_date'], '%Y-%m-%d').date()
+                    hire_date = st.date_input("Datum zaposlenja", 
+                                            value=default_hire_date,
+                                            format="DD.MM.YYYY")
+                    
+                    # Pregledi
+                    st.subheader("Pregledi")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write("Fizički pregled")
+                        phys_status = st.radio("Status fizičkog pregleda", 
+                                             ["Ima pregled", "Nema pregled"],
+                                             key="phys_status",
+                                             horizontal=True,
+                                             index=0 if emp['next_physical_date'] else 1)
+                        
+                        if phys_status == "Ima pregled":
+                            default_next_phys = None
+                            if emp['next_physical_date']:
+                                try:
+                                    default_next_phys = datetime.strptime(emp['next_physical_date'], '%Y-%m-%d').date()
+                                except:
+                                    default_next_phys = None
+                            
+                            next_phys = st.date_input("Datum sljedećeg fizičkog pregleda",
+                                                     value=default_next_phys,
+                                                     format="DD.MM.YYYY",
+                                                     key="next_phys_date")
+                        else:
+                            next_phys = None
+                    
+                    with col2:
+                        st.write("Psihički pregled")
+                        psy_status = st.radio("Status psihičkog pregleda", 
+                                            ["Ima pregled", "Nema pregled"],
+                                            key="psy_status",
+                                            horizontal=True,
+                                            index=0 if emp['next_psych_date'] else 1)
+                        
+                        if psy_status == "Ima pregled":
+                            default_next_psy = None
+                            if emp['next_psych_date']:
+                                try:
+                                    default_next_psy = datetime.strptime(emp['next_psych_date'], '%Y-%m-%d').date()
+                                except:
+                                    default_next_psy = None
+                            
+                            next_psy = st.date_input("Datum sljedećeg psihičkog pregleda",
+                                                    value=default_next_psy,
+                                                    format="DD.MM.YYYY",
+                                                    key="next_psy_date")
+                        else:
+                            next_psy = None
+                    
+                    invalidity = st.checkbox("Invaliditet", value=bool(emp['invalidity']))
+                    children = st.number_input("Broj djece mlađe od 15g", 
+                                            min_value=0, 
+                                            value=int(emp['children_under15']))
+                    sole = st.checkbox("Samohrani roditelj", value=bool(emp['sole_caregiver']))
+                    
+                    submit = st.form_submit_button("Spremi promjene")
+                    if submit:
+                        data = {
+                            'name': name,
+                            'oib': oib,
+                            'address': address,
+                            'birth_date': birth_date.strftime('%Y-%m-%d') if birth_date else '',
+                            'hire': hire_date.strftime('%Y-%m-%d'),
+                            'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else '',
+                            'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else '',
+                            'invalidity': invalidity,
+                            'children': children,
+                            'sole': sole
+                        }
+                        
+                        if edit_employee(emp['id'], data):
+                            st.success("Zaposlenik uspješno ažuriran!")
+                            st.rerun()
 
     elif menu == 'Obriši zaposlenika':
         sel = st.selectbox('Odaberi zaposlenika za brisanje',names,key='del_select')
