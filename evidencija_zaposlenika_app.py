@@ -421,7 +421,7 @@ def main():
                         try:
                             delete_leave_record(emp['id'], record['id'])
                             st.success("✅ Zapis obrisan!")
-        st.rerun()
+                            st.rerun()
                         except Exception as e:
                             st.error(f"❌ Greška: {str(e)}")
         else:
