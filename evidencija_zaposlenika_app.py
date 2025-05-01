@@ -236,8 +236,8 @@ def compute_leave(hire, invalidity, children, sole):
 def add_employee(data):
     try:
         hire_date = data['hire']
-        next_phys = data['next_phys']
-        next_psy = data['next_psy']
+        next_phys = data.get('next_phys', '')  # Allow empty dates
+        next_psy = data.get('next_psy', '')    # Allow empty dates
 
         c.execute('''INSERT INTO employees
                      (name, oib, address, hire_date, training_start_date,
@@ -247,16 +247,20 @@ def add_employee(data):
                   (data['name'], data['oib'], data['address'], hire_date, hire_date,
                    next_phys, next_psy,
                    int(data['invalidity']), int(data['children']), int(data['sole'])))
-            
+        
+        conn.commit()
         emp_id = c.lastrowid
-        for j in st.session_state.new_jobs:
-            c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
-                      (emp_id, j['company'], j['start'], j['end']))
+        
+        for job in st.session_state.new_jobs:
+            c.execute('''INSERT INTO prev_jobs (emp_id,company,start_date,end_date)
+                        VALUES (?,?,?,?)''',
+                     (emp_id, job['company'], 
+                      parse_date(job['start']), 
+                      parse_date(job['end'])))
         conn.commit()
         return True
     except Exception as e:
-        print(f"Error adding employee: {e}")
-        conn.rollback()
+        st.error(f"Greška pri dodavanju: {str(e)}")
         return False
 
 def edit_employee(emp_id, data):
