@@ -316,7 +316,7 @@ def main():
         with col3:
             if st.button("➕ Dodaj", use_container_width=True):
                 try:
-                    add_days_adjustment(emp['id'], days, 'subtract', note)  # Obrnuta logika
+                    add_days_adjustment(emp['id'], days, 'add', note)  # Ispravljena logika
                     st.success("✅ Dodano!")
                     st.rerun()
                 except Exception as e:
@@ -324,7 +324,7 @@ def main():
         with col4:
             if st.button("➖ Oduzmi", use_container_width=True):
                 try:
-                    add_days_adjustment(emp['id'], days, 'add', note)  # Obrnuta logika
+                    add_days_adjustment(emp['id'], days, 'subtract', note)  # Ispravljena logika
                     st.success("✅ Oduzeto!")
                     st.rerun()
                 except Exception as e:
