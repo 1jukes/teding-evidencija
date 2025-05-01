@@ -286,6 +286,7 @@ def main():
         selected = st.selectbox("Odaberi zaposlenika", [emp['name'] for emp in employees])
         emp = next(emp for emp in employees if emp['name'] == selected)
         
+        # Osnovni podaci o godišnjem
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'])
@@ -306,59 +307,56 @@ def main():
         st.write(f"**Ukupno dana godišnjeg:** {leave_days}")
         st.write(f"**Preostalo dana:** {remaining_days}")
 
-        # Povijest promjena
+        # Povijest promjena (samo za dodavanje/oduzimanje dana)
         st.markdown("### Povijest promjena")
-        records_df = pd.DataFrame([
-            {
-                'Datum': format_date(r['start']),
-                'Promjena': "Dodano" if r['adjustment'] > 0 else "Oduzeto",
-                'Broj': abs(r['adjustment']),  # Uzimamo apsolutnu vrijednost
-                'Napomena': r['note'] or '',
-                'ID': r['id']
-            }
-            for r in leave_records if r['adjustment'] is not None
-        ])
-        
-        if not records_df.empty:
-            records_df = records_df.sort_values('Datum', ascending=False)
-            for index, row in records_df.iterrows():
+        adjustment_records = [r for r in leave_records if r['adjustment'] is not None]
+        if adjustment_records:
+            for record in sorted(adjustment_records, key=lambda x: parse_date(x['start']), reverse=True):
                 col1, col2 = st.columns([6, 1])
                 with col1:
-                    dan_text = "dan" if row['Broj'] == 1 else "dana"  # Ispravna množina
-                    napomena_text = f": {row['Napomena']}" if row['Napomena'] else ""
-                    st.write(f"**{row['Datum']}**: {row['Promjena']} {row['Broj']} {dan_text}{napomena_text}")
+                    operation = "Dodano" if record['adjustment'] > 0 else "Oduzeto"
+                    broj = abs(record['adjustment'])
+                    dan_text = "dan" if broj == 1 else "dana"
+                    napomena_text = f": {record['note']}" if record['note'] else ""
+                    st.write(f"**{format_date(record['start'])}**: {operation} {broj} {dan_text}{napomena_text}")
                 with col2:
-                    if st.button("Obriši", key=f"del_record_{row['ID']}_{index}", use_container_width=True):
-                        delete_leave_record(emp['id'], row['ID'])
+                    if st.button("Obriši", key=f"del_record_{record['id']}", use_container_width=True):
+                        delete_leave_record(emp['id'], record['id'])
                         st.rerun()
 
         # Ručno podešavanje dana
         st.markdown("### Ručno podešavanje dana")
-        col1, col2, col3, col4 = st.columns([2,4,1,1])
-        
-        with col1:
-            days = st.number_input("Broj dana", min_value=1, value=1)
-        with col2:
-            note = st.text_input("Napomena")
-        with col3:
-            if st.button("➕ Dodaj", use_container_width=True):
-                try:
-                    add_days_adjustment(emp['id'], days, 'add', note)
-                    st.success("✅ Dodano!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Greška: {str(e)}")
-        with col4:
-            if st.button("➖ Oduzmi", use_container_width=True):
-                try:
-                    add_days_adjustment(emp['id'], days, 'subtract', note)
-                    st.success("✅ Oduzeto!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Greška: {str(e)}")
+        with st.container():
+            col1, col2, col3, col4 = st.columns([2,4,1,1])
+            
+            with col1:
+                days = st.number_input("Broj dana", min_value=1, value=1)
+            with col2:
+                note = st.text_input("Napomena")
+            with col3:
+                if st.button("➕ Dodaj", 
+                           use_container_width=True,
+                           type="primary"):  # Poboljšani izgled gumba
+                    try:
+                        add_days_adjustment(emp['id'], days, 'add', note)
+                        st.success("✅ Dodano!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Greška: {str(e)}")
+            with col4:
+                if st.button("➖ Oduzmi", 
+                           use_container_width=True,
+                           type="secondary"):  # Poboljšani izgled gumba
+                    try:
+                        add_days_adjustment(emp['id'], days, 'subtract', note)
+                        st.success("✅ Oduzeto!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Greška: {str(e)}")
 
         # Evidencija korištenja
         st.markdown("### Evidencija korištenja")
+        leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
         
         # Forma za dodavanje novog godišnjeg
         with st.form("add_leave"):
@@ -368,7 +366,7 @@ def main():
             with col2:
                 end_date = st.date_input("Kraj godišnjeg")
             
-            if st.form_submit_button("Dodaj godišnji"):
+            if st.form_submit_button("Dodaj godišnji", type="primary"):
                 try:
                     add_leave_record(emp['id'], 
                                    start_date.strftime('%Y-%m-%d'),
@@ -378,37 +376,23 @@ def main():
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
         
-        # Prikaz evidencije
-        if leave_records:
-            for record in leave_records:
+        # Prikaz evidencije korištenja
+        if leave_usage_records:
+            for record in sorted(leave_usage_records, key=lambda x: parse_date(x['start']), reverse=True):
                 col1, col2, col3, col4 = st.columns([2,2,2,1])
                 with col1:
-                    if record['adjustment'] is not None:
-                        operation = "Dodano" if record['adjustment'] < 0 else "Oduzeto"
-                        st.write(f"**{operation}:** {abs(record['adjustment'])} dana")
-                        if record['note']:
-                            st.write(f"**Napomena:** {record['note']}")
-                    else:
-                        st.write(f"**Od:** {record['start']}")
+                    st.write(f"**Od:** {record['start']}")
                 with col2:
-                    if record['adjustment'] is None:
-                        st.write(f"**Do:** {record['end']}")
+                    st.write(f"**Do:** {record['end']}")
                 with col3:
-                    if record['adjustment'] is None:
-                        start = datetime.strptime(parse_date(record['start']), '%Y-%m-%d').date()
-                        end = datetime.strptime(parse_date(record['end']), '%Y-%m-%d').date()
-                        days = (end - start).days + 1
-                        st.write(f"**Broj dana:** {days}")
+                    start = datetime.strptime(parse_date(record['start']), '%Y-%m-%d').date()
+                    end = datetime.strptime(parse_date(record['end']), '%Y-%m-%d').date()
+                    days = (end - start).days + 1
+                    st.write(f"**Broj dana:** {days}")
                 with col4:
-                    if st.button("Obriši", key=f"del_{record['id']}"):
-                        try:
-                            delete_leave_record(emp['id'], record['id'])
-                            st.success("✅ Zapis obrisan!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Greška: {str(e)}")
-        else:
-            st.write("Nema evidencije korištenja godišnjeg odmora.")
+                    if st.button("Obriši", key=f"del_leave_{record['id']}", use_container_width=True):
+                        delete_leave_record(emp['id'], record['id'])
+                        st.rerun()
 
     elif choice == "Pregledaj zaposlenika":
         employees = get_employees()
