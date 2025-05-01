@@ -436,32 +436,34 @@ def main():
             st.write(f"**Preostalo dana:** {leave - used}")
         
         st.markdown('### Pregledi')
-        col3, col4 = st.columns(2)
-        with col3:
+        c3,c4 = st.columns(2)
+        with c3:
             st.markdown('**Fizički pregled**')
-            if emp['physical_required']:
-                st.write(f"Status: Ima pregled")
-                if emp['next_physical_date']:
-                    next_date = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date()
-                    days_left = (next_date - date.today()).days
-                    st.write(f"Datum pregleda: {format_date(emp['next_physical_date'])}")
-                    if days_left <= 30:
-                        st.warning(f"Pregled je za {days_left} dana!")
+            phys_status = st.radio('Status fizičkog pregleda', ['Nema pregled', 'Ima pregled'], key='phys_status')
+            if phys_status == 'Ima pregled':
+                next_phys_date = st.date_input('Datum sljedećeg pregleda (opcionalno)',
+                                     value=None,  # Postavljamo na None da bude prazno
+                                     min_value=date.today(),
+                                     format="DD.MM.YYYY",
+                                     key='next_phys_date')
+                # Pretvaramo datum u None ako nije odabran
+                next_phys = next_phys_date.strftime('%Y-%m-%d') if next_phys_date else None
             else:
-                st.write("Status: Nema pregled")
+                next_phys = None
         
-        with col4:
+        with c4:
             st.markdown('**Psihički pregled**')
-            if emp['psych_required']:
-                st.write(f"Status: Ima pregled")
-                if emp['next_psych_date']:
-                    next_date = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date()
-                    days_left = (next_date - date.today()).days
-                    st.write(f"Datum pregleda: {format_date(emp['next_psych_date'])}")
-                    if days_left <= 30:
-                        st.warning(f"Pregled je za {days_left} dana!")
+            psy_status = st.radio('Status psihičkog pregleda', ['Nema pregled', 'Ima pregled'], key='psy_status')
+            if psy_status == 'Ima pregled':
+                next_psy_date = st.date_input('Datum sljedećeg pregleda (opcionalno)',
+                                    value=None,  # Postavljamo na None da bude prazno
+                                    min_value=date.today(),
+                                    format="DD.MM.YYYY",
+                                    key='next_psy_date')
+                # Pretvaramo datum u None ako nije odabran
+                next_psy = next_psy_date.strftime('%Y-%m-%d') if next_psy_date else None
             else:
-                st.write("Status: Nema pregled")
+                next_psy = None
         
         st.markdown('### Prethodno iskustvo')
         prev_jobs = get_prev_jobs(emp['id'])
@@ -559,7 +561,7 @@ def main():
                 st.markdown('**Fizički pregled**')
                 phys_status = st.radio('Fizički pregled', ['Nema pregled', 'Ima pregled'], key='phys_status')
                 if phys_status == 'Ima pregled':
-                    next_phys = st.date_input('Datum pregleda',
+                    next_phys_date = st.date_input('Datum pregleda',
                                          value=date.today(),
                                          min_value=date.today(),
                                          format="DD.MM.YYYY",
@@ -571,7 +573,7 @@ def main():
                 st.markdown('**Psihički pregled**')
                 psy_status = st.radio('Psihički pregled', ['Nema pregled', 'Ima pregled'], key='psy_status')
                 if psy_status == 'Ima pregled':
-                    next_psy = st.date_input('Datum pregleda',
+                    next_psy_date = st.date_input('Datum pregleda',
                                         value=date.today(),
                                         min_value=date.today(),
                                         format="DD.MM.YYYY",
@@ -667,7 +669,7 @@ def main():
                     except:
                         next_phys_value = date.today()
                         
-                    next_phys = st.date_input('Datum pregleda',
+                    next_phys_date = st.date_input('Datum pregleda',
                                          value=next_phys_value,
                                          min_value=date.today(),
                                          format="DD.MM.YYYY",
@@ -686,7 +688,7 @@ def main():
                     except:
                         next_psy_value = date.today()
                         
-                    next_psy = st.date_input('Datum pregleda',
+                    next_psy_date = st.date_input('Datum pregleda',
                                         value=next_psy_value,
                                         min_value=date.today(),
                                         format="DD.MM.YYYY",
