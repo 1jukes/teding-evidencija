@@ -563,13 +563,15 @@ def main():
                 next_physical = st.date_input(
                     "Datum sljedećeg fizičkog pregleda",
                     value=None if not selected_employee or not selected_employee['next_physical_date']
-                          else datetime.strptime(selected_employee['next_physical_date'], '%Y-%m-%d').date()
+                          else datetime.strptime(selected_employee['next_physical_date'], '%Y-%m-%d').date(),
+                    format="DD/MM/YYYY"
                 )
             with col2:
                 next_psych = st.date_input(
                     "Datum sljedećeg psihičkog pregleda",
                     value=None if not selected_employee or not selected_employee['next_psych_date']
-                          else datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date()
+                          else datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date(),
+                    format="DD/MM/YYYY"
                 )
             
             # Staž prije
