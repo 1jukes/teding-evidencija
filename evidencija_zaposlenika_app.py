@@ -82,6 +82,7 @@ def init_db():
             name TEXT NOT NULL,
             oib TEXT,
             address TEXT,
+            birth_date TEXT,
             hire_date TEXT NOT NULL,
             training_start_date TEXT NOT NULL,
             last_physical_date TEXT,
@@ -111,6 +112,10 @@ def init_db():
         pass
     try:
         c.execute('ALTER TABLE employees ADD COLUMN psych_required INTEGER NOT NULL DEFAULT 1')
+    except:
+        pass
+    try:
+        c.execute('ALTER TABLE employees ADD COLUMN birth_date TEXT')
     except:
         pass
     
@@ -236,16 +241,17 @@ def compute_leave(hire, invalidity, children, sole):
 def add_employee(data):
     try:
         hire_date = data['hire']
-        next_phys = data.get('next_phys', '')  # Allow empty dates
-        next_psy = data.get('next_psy', '')    # Allow empty dates
+        next_phys = data.get('next_phys', '')
+        next_psy = data.get('next_psy', '')
+        birth_date = data.get('birth_date', '')
 
         c.execute('''INSERT INTO employees
-                     (name, oib, address, hire_date, training_start_date,
+                     (name, oib, address, birth_date, hire_date, training_start_date,
                       next_physical_date, next_psych_date, invalidity, 
                       children_under15, sole_caregiver)
-                     VALUES (?,?,?,?,?,?,?,?,?,?)''',
-                  (data['name'], data['oib'], data['address'], hire_date, hire_date,
-                   next_phys, next_psy,
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+                  (data['name'], data['oib'], data['address'], birth_date,
+                   hire_date, hire_date, next_phys, next_psy,
                    int(data['invalidity']), int(data['children']), int(data['sole'])))
         
         conn.commit()
@@ -265,28 +271,19 @@ def add_employee(data):
 
 def edit_employee(emp_id, data):
     try:
-        next_phys = data['next_phys']
-        next_psy = data['next_psy']
-
-        c.execute('''UPDATE employees SET
-                     name=?, oib=?, address=?, hire_date=?, training_start_date=?,
-                     next_physical_date=?, next_psych_date=?, invalidity=?, 
-                     children_under15=?, sole_caregiver=?
+        c.execute('''UPDATE employees 
+                     SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
+                         next_physical_date=?, next_psych_date=?,
+                         invalidity=?, children_under15=?, sole_caregiver=?
                      WHERE id=?''',
-                  (data['name'], data['oib'], data['address'], data['hire'], data['hire'],
-                   next_phys, next_psy,
-                   int(data['invalidity']), int(data['children']), int(data['sole']),
-                   emp_id))
-
-        c.execute('DELETE FROM prev_jobs WHERE emp_id=?', (emp_id,))
-        for j in st.session_state.edit_jobs:
-            c.execute('INSERT INTO prev_jobs(emp_id,company,start_date,end_date) VALUES (?,?,?,?)',
-                      (emp_id, j['company'], j['start'], j['end']))
+                  (data['name'], data['oib'], data['address'], data['birth_date'],
+                   data['hire'], data['next_phys'], data['next_psy'],
+                   int(data['invalidity']), int(data['children']), 
+                   int(data['sole']), emp_id))
         conn.commit()
         return True
     except Exception as e:
-        print(f"Error editing employee: {e}")
-        conn.rollback()
+        st.error(f"Greška pri ažuriranju: {str(e)}")
         return False
 
 def delete_employee(emp_id):
@@ -410,6 +407,7 @@ def main():
             st.write(f"**Ime i prezime:** {emp['name']}")
             st.write(f"**OIB:** {emp['oib'] or 'Nije unesen'}")
             st.write(f"**Adresa:** {emp['address'] or 'Nije unesena'}")
+            st.write(f"**Datum rođenja:** {format_date(emp['birth_date'])}")
         with col2:
             st.write(f"**Datum zaposlenja:** {format_date(emp['hire_date'])}")
             st.write(f"**Invaliditet:** {'Da' if emp['invalidity'] else 'Ne'}")
@@ -572,6 +570,7 @@ def main():
             name = st.text_input('Ime i prezime', value="")
             oib = st.text_input('OIB', value="")
             address = st.text_input('Adresa', value="")
+            birth_date = st.date_input('Datum rođenja', format="DD.MM.YYYY")
             hire = st.date_input('Datum zaposlenja',
                                value=None,
                                min_value=date(1960,1,1),
@@ -652,6 +651,7 @@ def main():
                             'name': name,
                             'oib': oib,
                             'address': address,
+                            'birth_date': birth_date.strftime('%Y-%m-%d'),
                             'hire': hire.strftime('%Y-%m-%d'),
                             'next_phys': next_phys,
                             'next_psy': next_psy,
@@ -698,6 +698,10 @@ def main():
             name = st.text_input('Ime i prezime', value=emp['name'])
             oib = st.text_input('OIB', value=emp['oib'] or "")
             address = st.text_input('Adresa', value=emp['address'] or "")
+            birth_date = st.date_input('Datum rođenja',
+                               value=datetime.strptime(emp['birth_date'],'%Y-%m-%d').date(),
+                               min_value=date(1960,1,1),
+                               format="DD.MM.YYYY")
             hire = st.date_input('Datum zaposlenja',
                                value=datetime.strptime(emp['hire_date'],'%Y-%m-%d').date(),
                                min_value=date(1960,1,1),
@@ -777,6 +781,7 @@ def main():
                         'name': name,
                         'oib': oib,
                         'address': address,
+                        'birth_date': birth_date.strftime('%Y-%m-%d'),
                         'hire': hire.strftime('%Y-%m-%d'),
                         'next_phys': next_phys,
                         'next_psy': next_psy,
