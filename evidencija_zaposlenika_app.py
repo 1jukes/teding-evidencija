@@ -570,7 +570,9 @@ def main():
             name = st.text_input('Ime i prezime', value="")
             oib = st.text_input('OIB', value="")
             address = st.text_input('Adresa', value="")
-            birth_date = st.date_input('Datum rođenja', format="DD.MM.YYYY")
+            birth_date = st.date_input('Datum rođenja', 
+                                     min_value=datetime(1950, 1, 1).date(),
+                                     format="DD.MM.YYYY")
             hire = st.date_input('Datum zaposlenja',
                                value=None,
                                min_value=date(1960,1,1),
@@ -713,6 +715,7 @@ def main():
                     
                     birth_date = st.date_input("Datum rođenja", 
                                              value=default_birth_date,
+                                             min_value=datetime(1950, 1, 1).date(),
                                              format="DD.MM.YYYY")
                     
                     # Formatiranje datuma zaposlenja za prikaz
