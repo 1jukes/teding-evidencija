@@ -93,7 +93,8 @@ def init_db():
             children_under15 INTEGER NOT NULL DEFAULT 0,
             sole_caregiver INTEGER NOT NULL DEFAULT 0,
             physical_required INTEGER NOT NULL DEFAULT 1,
-            psych_required INTEGER NOT NULL DEFAULT 1
+            psych_required INTEGER NOT NULL DEFAULT 1,
+            previous_experience INTEGER NOT NULL DEFAULT 0
         )
     ''')
     
@@ -116,6 +117,10 @@ def init_db():
         pass
     try:
         c.execute('ALTER TABLE employees ADD COLUMN birth_date TEXT')
+    except:
+        pass
+    try:
+        c.execute('ALTER TABLE employees ADD COLUMN previous_experience INTEGER NOT NULL DEFAULT 0')
     except:
         pass
     
@@ -248,11 +253,12 @@ def add_employee(data):
         c.execute('''INSERT INTO employees
                      (name, oib, address, birth_date, hire_date,
                       next_physical_date, next_psych_date, invalidity, 
-                      children_under15, sole_caregiver)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      children_under15, sole_caregiver, previous_experience)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                  (data['name'], data['oib'], data['address'], birth_date,
                   hire_date, next_phys, next_psy,
-                  data['invalidity'], data['children'], data['sole']))
+                  data['invalidity'], data['children'], data['sole'],
+                  data['previous_experience']))
         conn.commit()
         return c.lastrowid
     except Exception as e:
@@ -264,12 +270,13 @@ def edit_employee(emp_id, data):
         c.execute('''UPDATE employees 
                      SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
                          next_physical_date=?, next_psych_date=?,
-                         invalidity=?, children_under15=?, sole_caregiver=?
+                         invalidity=?, children_under15=?, sole_caregiver=?,
+                         previous_experience=?
                      WHERE id=?''',
                   (data['name'], data['oib'], data['address'], data['birth_date'],
                    data['hire'], data['next_phys'], data['next_psy'],
                    int(data['invalidity']), int(data['children']), 
-                   int(data['sole']), emp_id))
+                   int(data['sole']), int(data['previous_experience']), emp_id))
         conn.commit()
         return True
     except Exception as e:
@@ -349,12 +356,9 @@ def main():
         
         remaining_days = leave_days - used_days
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**Ukupno dana godišnjeg:** {leave_days}")
-            st.write(f"**Iskorišteno dana:** {used_days}")
-            st.write(f"**Preostalo dana:** {remaining_days}")
-        
+        st.write(f"**Ukupno dana godišnjeg:** {leave_days}")
+        st.write(f"**Preostalo dana:** {remaining_days}")
+
         # Pojednostavljeno ručno podešavanje dana
         st.markdown("### Ručno podešavanje dana")
         col1, col2, col3, col4 = st.columns([2,4,1,1])
@@ -367,7 +371,7 @@ def main():
             if st.button("➕ Dodaj"):
                 try:
                     add_days_adjustment(emp['id'], days, 'add', note)
-                    st.success("✅ Dodano dana!")
+                    st.success("✅ Dodano!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
@@ -375,7 +379,7 @@ def main():
             if st.button("➖ Oduzmi"):
                 try:
                     add_days_adjustment(emp['id'], days, 'subtract', note)
-                    st.success("✅ Oduzeto dana!")
+                    st.success("✅ Oduzeto!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
@@ -498,6 +502,8 @@ def main():
                     max_value=date.today())
                 hire_date = st.date_input("Datum zaposlenja",
                     value=datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date() if selected_employee else date.today())
+                previous_experience = st.number_input("Staž prije (godine)", 
+                    min_value=0, value=selected_employee.get('previous_experience', 0) if selected_employee else 0)
             
             with col2:
                 invalidity = st.checkbox("Status invaliditeta", 
@@ -532,7 +538,8 @@ def main():
                         'children_under15': children,
                         'sole_caregiver': sole_caregiver,
                         'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
-                        'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None
+                        'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None,
+                        'previous_experience': previous_experience
                     }
                     
                     if selected_employee:
