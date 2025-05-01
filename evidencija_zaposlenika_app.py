@@ -520,7 +520,7 @@ def main():
             
             if e['next_physical_date'] and e['physical_required']:
                 try:
-            phys = datetime.strptime(e['next_physical_date'],'%Y-%m-%d').date()
+                    phys = datetime.strptime(e['next_physical_date'],'%Y-%m-%d').date()
                     if 0 <= (phys-date.today()).days <= 30:
                         phys_str = format_date(e['next_physical_date'])
                 except:
@@ -528,7 +528,7 @@ def main():
                     
             if e['next_psych_date'] and e['psych_required']:
                 try:
-            psych = datetime.strptime(e['next_psych_date'],'%Y-%m-%d').date()
+                    psych = datetime.strptime(e['next_psych_date'],'%Y-%m-%d').date()
                     if 0 <= (psych-date.today()).days <= 30:
                         psych_str = format_date(e['next_psych_date'])
                 except:
