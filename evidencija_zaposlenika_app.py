@@ -727,49 +727,15 @@ def main():
                     
                     with col1:
                         st.write("Fizički pregled")
-                        phys_status = st.radio("Status fizičkog pregleda", 
-                                             ["Ima pregled", "Nema pregled"],
-                                             key="phys_status",
-                                             horizontal=True,
-                                             index=0 if emp['next_physical_date'] else 1)
-                        
-                        if phys_status == "Ima pregled":
-                            default_next_phys = None
-                            if emp['next_physical_date']:
-                                try:
-                                    default_next_phys = datetime.strptime(emp['next_physical_date'], '%Y-%m-%d').date()
-                                except:
-                                    default_next_phys = None
-                            
-                            next_phys = st.date_input("Datum sljedećeg fizičkog pregleda",
-                                                     value=default_next_phys,
-                                                     format="DD.MM.YYYY",
-                                                     key="next_phys_date")
-                        else:
-                            next_phys = None
+                        next_phys = st.date_input("Datum sljedećeg fizičkog pregleda",
+                                                value=datetime.strptime(emp['next_physical_date'], '%Y-%m-%d').date() if emp['next_physical_date'] else None,
+                                                format="DD.MM.YYYY")
                     
                     with col2:
                         st.write("Psihički pregled")
-                        psy_status = st.radio("Status psihičkog pregleda", 
-                                            ["Ima pregled", "Nema pregled"],
-                                            key="psy_status",
-                                            horizontal=True,
-                                            index=0 if emp['next_psych_date'] else 1)
-                        
-                        if psy_status == "Ima pregled":
-                            default_next_psy = None
-                            if emp['next_psych_date']:
-                                try:
-                                    default_next_psy = datetime.strptime(emp['next_psych_date'], '%Y-%m-%d').date()
-                                except:
-                                    default_next_psy = None
-                            
-                            next_psy = st.date_input("Datum sljedećeg psihičkog pregleda",
-                                                    value=default_next_psy,
-                                                    format="DD.MM.YYYY",
-                                                    key="next_psy_date")
-                        else:
-                            next_psy = None
+                        next_psy = st.date_input("Datum sljedećeg psihičkog pregleda",
+                                               value=datetime.strptime(emp['next_psych_date'], '%Y-%m-%d').date() if emp['next_psych_date'] else None,
+                                               format="DD.MM.YYYY")
                     
                     invalidity = st.checkbox("Invaliditet", value=bool(emp['invalidity']))
                     children = st.number_input("Broj djece mlađe od 15g", 
@@ -777,8 +743,7 @@ def main():
                                             value=int(emp['children_under15']))
                     sole = st.checkbox("Samohrani roditelj", value=bool(emp['sole_caregiver']))
                     
-                    submit = st.form_submit_button("Spremi promjene")
-                    if submit:
+                    if st.form_submit_button("Spremi promjene"):
                         data = {
                             'name': name,
                             'oib': oib,
