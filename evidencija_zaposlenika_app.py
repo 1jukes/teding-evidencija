@@ -30,13 +30,22 @@ def format_date(date_str):
         return date_str
 
 def parse_date(date_str):
-    """Pretvara datum iz DD.MM.YYYY u YYYY-MM-DD format za bazu"""
+    """Pretvara datum iz DD/MM/YYYY u YYYY-MM-DD format za bazu"""
     if not date_str:
         return ""
     try:
-        return datetime.strptime(date_str, '%d.%m.%Y.').strftime('%Y-%m-%d')
-    except:
-        return date_str
+        # Prvo pokušaj s kosim crtama
+        return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
+    except ValueError:
+        try:
+            # Ako ne uspije, pokušaj s točkama
+            return datetime.strptime(date_str, '%d.%m.%Y').strftime('%Y-%m-%d')
+        except ValueError:
+            try:
+                # Ako je već u YYYY-MM-DD formatu
+                return datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y-%m-%d')
+            except:
+                return date_str
 
 # Funkcija za provjeru lozinke
 def check_password():
@@ -378,7 +387,6 @@ def main():
                     format="DD/MM/YYYY"
                 )
                 
-                # Submit button mora biti zadnji element u formi
                 submitted = st.form_submit_button("Dodaj godišnji")
                 
                 if submitted:
