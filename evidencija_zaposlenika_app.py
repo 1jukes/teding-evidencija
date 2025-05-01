@@ -516,63 +516,95 @@ def main():
                     except Exception as e:
                         st.error(f"❌ Greška: {str(e)}")
 
-    elif choice == "Pregled zaposlenika":
-        rows = []
-        for e in get_employees():
-            rd_curr = compute_tenure(e['hire_date'])
-            rd_before = relativedelta()
-            for j in get_prev_jobs(e['id']):
-                rd = relativedelta(
-                    datetime.strptime(parse_date(j['end']),'%Y-%m-%d').date(),
-                    datetime.strptime(parse_date(j['start']),'%Y-%m-%d').date())
-                rd_before += rd
-            rd_tot = rd_curr + rd_before
-            leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'])
+    elif choice == "Dodaj/Uredi zaposlenika":
+        employees = get_employees()
+        
+        # Odabir zaposlenika za uređivanje
+        selected_employee = None
+        if employees:
+            names = ["Novi zaposlenik"] + [emp['name'] for emp in employees]
+            selected = st.selectbox("Odaberi zaposlenika", names)
+            if selected != "Novi zaposlenik":
+                selected_employee = next(emp for emp in employees if emp['name'] == selected)
+        
+        # Forma za unos/uređivanje podataka
+        with st.form("employee_form"):
+            st.markdown("### Podaci o zaposleniku")
             
-            # Računanje ukupno iskorištenih dana
-            leave_records = get_leave_records(e['id'])
-            used = 0
-            for lr in leave_records:
-                if lr['adjustment'] is None:
-                    used += (datetime.strptime(parse_date(lr['end']),'%Y-%m-%d').date() - 
-                            datetime.strptime(parse_date(lr['start']),'%Y-%m-%d').date()).days + 1
-                else:
-                    used -= lr['adjustment']
+            # Osnovni podaci
+            col1, col2 = st.columns(2)
+            with col1:
+                name = st.text_input("Ime i prezime", value=selected_employee['name'] if selected_employee else "")
+                oib = st.text_input("OIB", value=selected_employee['oib'] if selected_employee else "")
+                address = st.text_input("Adresa", value=selected_employee['address'] if selected_employee else "")
+                birth_date = st.date_input("Datum rođenja", 
+                    value=datetime.strptime(selected_employee['birth_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['birth_date'] else None,
+                    min_value=datetime(1950, 1, 1).date(),
+                    max_value=date.today())
+                hire_date = st.date_input("Datum zaposlenja",
+                    value=datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date() if selected_employee else date.today())
             
-            rem = leave - used
+            with col2:
+                invalidity = st.checkbox("Status invaliditeta", 
+                    value=selected_employee['invalidity'] if selected_employee else False)
+                children = st.number_input("Broj djece mlađe od 15 godina", 
+                    min_value=0, value=selected_employee['children_under15'] if selected_employee else 0)
+                sole_caregiver = st.checkbox("Samohrani roditelj", 
+                    value=selected_employee['sole_caregiver'] if selected_employee else False)
             
-            # Fix za prikaz datuma pregleda
-            phys_str = ''
-            psych_str = ''
+            # Pregledi
+            st.markdown("### Pregledi")
+            col1, col2 = st.columns(2)
+            with col1:
+                next_physical = st.date_input("Datum sljedećeg fizičkog pregleda", 
+                    value=datetime.strptime(selected_employee['next_physical_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_physical_date'] else None,
+                    key="physical_date")
+            with col2:
+                next_psych = st.date_input("Datum sljedećeg psihičkog pregleda",
+                    value=datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_psych_date'] else None,
+                    key="psych_date")
             
-            if e['next_physical_date'] and e['physical_required']:
+            # Prethodna iskustva
+            st.markdown("### Prethodna iskustva")
+            if selected_employee:
+                prev_jobs = get_prev_jobs(selected_employee['id'])
+            else:
+                prev_jobs = []
+            
+            for i, job in enumerate(prev_jobs):
+                col1, col2, col3, col4 = st.columns([2,1,1,1])
+                with col1:
+                    company = st.text_input(f"Tvrtka {i+1}", value=job['company'])
+                with col2:
+                    start = st.text_input(f"Od {i+1}", value=job['start'])
+                with col3:
+                    end = st.text_input(f"Do {i+1}", value=job['end'])
+            
+            # Gumb za spremanje
+            if st.form_submit_button("Spremi"):
                 try:
-            phys = datetime.strptime(e['next_physical_date'],'%Y-%m-%d').date()
-                    if 0 <= (phys-date.today()).days <= 30:
-                        phys_str = format_date(e['next_physical_date'])
-                except:
-                    pass
+                    data = {
+                        'name': name,
+                        'oib': oib,
+                        'address': address,
+                        'birth_date': birth_date.strftime('%Y-%m-%d') if birth_date else None,
+                        'hire_date': hire_date.strftime('%Y-%m-%d'),
+                        'invalidity': invalidity,
+                        'children_under15': children,
+                        'sole_caregiver': sole_caregiver,
+                        'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
+                        'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None
+                    }
                     
-            if e['next_psych_date'] and e['psych_required']:
-                try:
-            psych = datetime.strptime(e['next_psych_date'],'%Y-%m-%d').date()
-                    if 0 <= (psych-date.today()).days <= 30:
-                        psych_str = format_date(e['next_psych_date'])
-                except:
-                    pass
-            
-            rows.append({
-                'Ime':e['name'],
-                'Datum zapos.':format_date(e['hire_date']),
-                'Staž prije':format_rd(rd_before),
-                'Staž kod nas':format_rd(rd_curr),
-                'Ukupno staž':format_rd(rd_tot),
-                'Godišnji (dana)':leave,
-                'Preostalo godišnji':rem,
-                'Sljedeći fiz. pregled':phys_str,
-                'Sljedeći psih. pregled':psych_str
-            })
-        st.dataframe(pd.DataFrame(rows),use_container_width=True)
+                    if selected_employee:
+                        edit_employee(selected_employee['id'], data)
+                        st.success("✅ Zaposlenik uspješno ažuriran!")
+                    else:
+                        add_employee(data)
+                        st.success("✅ Zaposlenik uspješno dodan!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Greška: {str(e)}")
 
 if __name__=='__main__':
     main()
