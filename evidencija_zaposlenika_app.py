@@ -421,7 +421,7 @@ def main():
                         try:
                             delete_leave_record(emp['id'], record['id'])
                             st.success("✅ Zapis obrisan!")
-                            st.rerun()
+        st.rerun()
                         except Exception as e:
                             st.error(f"❌ Greška: {str(e)}")
         else:
@@ -468,7 +468,7 @@ def main():
         else:
             st.write("Nema unesenih prethodnih iskustava.")
 
-        # Pojednostavljeni prikaz godišnjeg
+        # Godišnji odmor
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'])
@@ -486,8 +486,35 @@ def main():
         
         remaining_days = leave_days - used_days
         
-        st.write(f"**Ukupno dana godišnjeg:** {leave_days}")
-        st.write(f"**Preostalo dana:** {remaining_days}")
+        st.write(f"**Godišnji (prema pravilniku):** {leave_days} dana")
+        st.write(f"**Preostali godišnji:** {remaining_days} dana")
+        
+        # Ručno podešavanje dana
+        st.markdown("### Ručno podešavanje dana")
+        col1, col2, col3 = st.columns([2,3,1])
+        
+        with col1:
+            days = st.number_input("Broj dana", min_value=1, value=1)
+        with col2:
+            note = st.text_input("Napomena (npr. 'Neiskorišteni godišnji 2024')")
+        with col3:
+            col3_1, col3_2 = st.columns(2)
+            with col3_1:
+                if st.button("➕", help="Dodaj dane"):
+                    try:
+                        add_days_adjustment(emp['id'], days, 'add', note)
+                        st.success("✅ Dani dodani!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Greška: {str(e)}")
+            with col3_2:
+                if st.button("➖", help="Oduzmi dane"):
+                    try:
+                        add_days_adjustment(emp['id'], days, 'subtract', note)
+                        st.success("✅ Dani oduzeti!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Greška: {str(e)}")
 
     elif choice == "Pregled zaposlenika":
         rows = []
@@ -520,7 +547,7 @@ def main():
             
             if e['next_physical_date'] and e['physical_required']:
                 try:
-                    phys = datetime.strptime(e['next_physical_date'],'%Y-%m-%d').date()
+            phys = datetime.strptime(e['next_physical_date'],'%Y-%m-%d').date()
                     if 0 <= (phys-date.today()).days <= 30:
                         phys_str = format_date(e['next_physical_date'])
                 except:
@@ -528,7 +555,7 @@ def main():
                     
             if e['next_psych_date'] and e['psych_required']:
                 try:
-                    psych = datetime.strptime(e['next_psych_date'],'%Y-%m-%d').date()
+            psych = datetime.strptime(e['next_psych_date'],'%Y-%m-%d').date()
                     if 0 <= (psych-date.today()).days <= 30:
                         psych_str = format_date(e['next_psych_date'])
                 except:
