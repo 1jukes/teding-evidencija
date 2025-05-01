@@ -308,16 +308,26 @@ def main():
 
         # Povijest promjena
         st.markdown("### Povijest promjena")
-        for record in leave_records:
-            if record['adjustment'] is not None:
+        records_df = pd.DataFrame([
+            {
+                'Datum': format_date(r['start']),
+                'Promjena': f"+{r['adjustment']}" if r['adjustment'] > 0 else str(r['adjustment']),
+                'Napomena': r['note'] or '',
+                'ID': r['id']
+            }
+            for r in leave_records if r['adjustment'] is not None
+        ])
+        
+        if not records_df.empty:
+            records_df = records_df.sort_values('Datum', ascending=False)
+            for index, row in records_df.iterrows():
                 col1, col2 = st.columns([6, 1])
                 with col1:
-                    operation = "Dodano" if record['adjustment'] > 0 else "Oduzeto"  # Ispravljena logika
-                    st.write(f"**{format_date(record['start'])}**: {operation} {abs(record['adjustment'])} dana - {record['note'] or ''}")
+                    st.write(f"**{row['Datum']}**: {row['Promjena']} dana - {row['Napomena']}")
                 with col2:
                     st.write("")  # Prazan prostor za poravnanje
-                    if st.button("Obriši", key=f"del_{record['id']}", use_container_width=True):
-                        delete_leave_record(emp['id'], record['id'])
+                    if st.button("Obriši", key=f"del_record_{row['ID']}_{index}", use_container_width=True):  # Dodali smo index u ključ
+                        delete_leave_record(emp['id'], row['ID'])
                         st.rerun()
 
         # Ručno podešavanje dana
