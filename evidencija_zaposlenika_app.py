@@ -365,7 +365,8 @@ def main():
         leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
         
         # Forma za dodavanje novog godišnjeg
-        with st.form("add_leave"):
+        with st.form("add_leave", clear_on_submit=True):
+            st.markdown("### Dodaj novi godišnji")
             col1, col2 = st.columns(2)
             with col1:
                 start_date = st.date_input(
@@ -382,19 +383,26 @@ def main():
                     key="end_date"
                 )
             
-            submitted = st.form_submit_button("Dodaj godišnji")
+            # Dodajemo submit button
+            submitted = st.form_submit_button("📅 Dodaj godišnji")
             
             if submitted:
-                try:
-                    add_leave_record(
-                        emp['id'], 
-                        start_date.strftime('%Y-%m-%d'),
-                        end_date.strftime('%Y-%m-%d')
-                    )
-                    st.success("✅ Godišnji uspješno dodan!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Greška: {str(e)}")
+                if start_date and end_date:
+                    if start_date <= end_date:
+                        try:
+                            add_leave_record(
+                                emp['id'], 
+                                start_date.strftime('%Y-%m-%d'),
+                                end_date.strftime('%Y-%m-%d')
+                            )
+                            st.success("✅ Godišnji uspješno dodan!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Greška: {str(e)}")
+                    else:
+                        st.error("❌ Datum početka mora biti prije ili jednak datumu završetka!")
+                else:
+                    st.error("❌ Molimo unesite oba datuma!")
         
         # Prikaz evidencije korištenja
         if leave_usage_records:
@@ -509,7 +517,7 @@ def main():
                 selected_employee = next(emp for emp in employees if emp['name'] == selected)
         
         # Forma za unos/uređivanje podataka
-        with st.form("employee_form"):
+        with st.form("employee_form", clear_on_submit=True):
             st.markdown("### Podaci o zaposleniku")
             
             # Osnovni podaci
@@ -570,6 +578,7 @@ def main():
             # Pretvori u ukupne dane za spremanje
             total_days = years * 365 + months * 30 + days
             
+            # Gumb za spremanje - premjestimo ga na kraj forme
             # Gumb za spremanje
             if st.form_submit_button("Spremi"):
                 try:
