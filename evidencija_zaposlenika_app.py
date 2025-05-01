@@ -196,14 +196,39 @@ def format_rd(rd):
     return ' '.join(parts) or '0d'
 
 def compute_leave(hire, invalidity, children, sole):
+    """
+    Računanje godišnjeg odmora prema pravilniku:
+    - Osnovno: 20 dana
+    - Invaliditet: +5 dana
+    - Samohranitelj: +3 dana
+    - Djeca: 1 dijete = +1 dan, 2 ili više = +2 dana
+    - Staž: 10-20g = +1 dan, 20-30g = +2 dana, 30+ = +3 dana
+    """
     y = relativedelta(date.today(), datetime.strptime(hire, '%Y-%m-%d').date()).years
-    days = 20 + (5 if invalidity else 0)
-    if 10 <= y < 20: days += 1
-    elif 20 <= y < 30: days += 2
-    elif y >= 30: days += 3
-    if sole: days += 3
-    elif children == 1: days += 1
-    elif children >= 2: days += 2
+    
+    # Osnovno
+    days = 20
+    
+    # Invaliditet
+    if invalidity:
+        days += 5
+        
+    # Staž
+    if 10 <= y < 20:
+        days += 1
+    elif 20 <= y < 30:
+        days += 2
+    elif y >= 30:
+        days += 3
+        
+    # Djeca i samohranitelj
+    if sole:
+        days += 3
+    elif children == 1:
+        days += 1
+    elif children >= 2:
+        days += 2
+        
     return days
 
 # CRUD employee
@@ -390,6 +415,26 @@ def main():
             st.write(f"**Broj djece <15:** {emp['children_under15']}")
             st.write(f"**Samohranitelj:** {'Da' if emp['sole_caregiver'] else 'Ne'}")
         
+        st.markdown('### Godišnji odmor')
+        col5, col6 = st.columns(2)
+        with col5:
+            # Računanje godišnjeg
+            leave = compute_leave(emp['hire_date'], emp['invalidity'], 
+                                emp['children_under15'], emp['sole_caregiver'])
+            # Računanje iskorištenog godišnjeg
+            leave_records = get_leave_records(emp['id'])
+            used = 0
+            for lr in leave_records:
+                if lr['adjustment'] is None:
+                    used += (datetime.strptime(parse_date(lr['end']),'%Y-%m-%d').date() - 
+                            datetime.strptime(parse_date(lr['start']),'%Y-%m-%d').date()).days + 1
+                else:
+                    used -= lr['adjustment']
+            
+            st.write(f"**Ukupno dana godišnjeg:** {leave}")
+            st.write(f"**Iskorišteno dana:** {used}")
+            st.write(f"**Preostalo dana:** {leave - used}")
+        
         st.markdown('### Pregledi')
         col3, col4 = st.columns(2)
         with col3:
@@ -397,7 +442,11 @@ def main():
             if emp['physical_required']:
                 st.write(f"Status: Ima pregled")
                 if emp['next_physical_date']:
-                    st.write(f"Sljedeći pregled: {format_date(emp['next_physical_date'])}")
+                    next_date = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date()
+                    days_left = (next_date - date.today()).days
+                    st.write(f"Datum pregleda: {format_date(emp['next_physical_date'])}")
+                    if days_left <= 30:
+                        st.warning(f"Pregled je za {days_left} dana!")
             else:
                 st.write("Status: Nema pregled")
         
@@ -406,7 +455,11 @@ def main():
             if emp['psych_required']:
                 st.write(f"Status: Ima pregled")
                 if emp['next_psych_date']:
-                    st.write(f"Sljedeći pregled: {format_date(emp['next_psych_date'])}")
+                    next_date = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date()
+                    days_left = (next_date - date.today()).days
+                    st.write(f"Datum pregleda: {format_date(emp['next_psych_date'])}")
+                    if days_left <= 30:
+                        st.warning(f"Pregled je za {days_left} dana!")
             else:
                 st.write("Status: Nema pregled")
         
@@ -494,7 +547,7 @@ def main():
             st.markdown('### Osnovni podaci')
             name = st.text_input('Ime i prezime', value="")
             oib = st.text_input('OIB', value="")
-            address = st.text_area('Adresa', value="", height=100)
+            address = st.text_input('Adresa', value="")
             hire = st.date_input('Datum zaposlenja',
                                value=None,
                                min_value=date(1960,1,1),
@@ -506,7 +559,7 @@ def main():
                 st.markdown('**Fizički pregled**')
                 phys_status = st.radio('Fizički pregled', ['Nema pregled', 'Ima pregled'], key='phys_status')
                 if phys_status == 'Ima pregled':
-                    next_phys = st.date_input('Sljedeći fizički pregled',
+                    next_phys = st.date_input('Datum pregleda',
                                          value=date.today(),
                                          min_value=date.today(),
                                          format="DD.MM.YYYY",
@@ -518,7 +571,7 @@ def main():
                 st.markdown('**Psihički pregled**')
                 psy_status = st.radio('Psihički pregled', ['Nema pregled', 'Ima pregled'], key='psy_status')
                 if psy_status == 'Ima pregled':
-                    next_psy = st.date_input('Sljedeći psihički pregled',
+                    next_psy = st.date_input('Datum pregleda',
                                         value=date.today(),
                                         min_value=date.today(),
                                         format="DD.MM.YYYY",
@@ -595,7 +648,7 @@ def main():
             st.markdown('### Osnovni podaci')
             name = st.text_input('Ime i prezime', value=emp['name'])
             oib = st.text_input('OIB', value=emp['oib'] or "")
-            address = st.text_area('Adresa', value=emp['address'] or "", height=100)
+            address = st.text_input('Adresa', value=emp['address'] or "")
             hire = st.date_input('Datum zaposlenja',
                                value=datetime.strptime(emp['hire_date'],'%Y-%m-%d').date(),
                                min_value=date(1960,1,1),
@@ -614,7 +667,7 @@ def main():
                     except:
                         next_phys_value = date.today()
                         
-                    next_phys = st.date_input('Sljedeći fizički pregled',
+                    next_phys = st.date_input('Datum pregleda',
                                          value=next_phys_value,
                                          min_value=date.today(),
                                          format="DD.MM.YYYY",
@@ -633,7 +686,7 @@ def main():
                     except:
                         next_psy_value = date.today()
                         
-                    next_psy = st.date_input('Sljedeći psihički pregled',
+                    next_psy = st.date_input('Datum pregleda',
                                         value=next_psy_value,
                                         min_value=date.today(),
                                         format="DD.MM.YYYY",
