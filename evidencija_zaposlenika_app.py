@@ -311,7 +311,8 @@ def main():
         records_df = pd.DataFrame([
             {
                 'Datum': format_date(r['start']),
-                'Promjena': f"+{r['adjustment']}" if r['adjustment'] > 0 else str(r['adjustment']),
+                'Promjena': "Dodano" if r['adjustment'] > 0 else "Oduzeto",
+                'Broj': abs(r['adjustment']),  # Uzimamo apsolutnu vrijednost
                 'Napomena': r['note'] or '',
                 'ID': r['id']
             }
@@ -323,10 +324,11 @@ def main():
             for index, row in records_df.iterrows():
                 col1, col2 = st.columns([6, 1])
                 with col1:
-                    st.write(f"**{row['Datum']}**: {row['Promjena']} dana - {row['Napomena']}")
+                    dan_text = "dan" if row['Broj'] == 1 else "dana"  # Ispravna množina
+                    napomena_text = f": {row['Napomena']}" if row['Napomena'] else ""
+                    st.write(f"**{row['Datum']}**: {row['Promjena']} {row['Broj']} {dan_text}{napomena_text}")
                 with col2:
-                    st.write("")  # Prazan prostor za poravnanje
-                    if st.button("Obriši", key=f"del_record_{row['ID']}_{index}", use_container_width=True):  # Dodali smo index u ključ
+                    if st.button("Obriši", key=f"del_record_{row['ID']}_{index}", use_container_width=True):
                         delete_leave_record(emp['id'], row['ID'])
                         st.rerun()
 
