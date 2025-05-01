@@ -246,28 +246,18 @@ def add_employee(data):
         birth_date = data.get('birth_date', '')
 
         c.execute('''INSERT INTO employees
-                     (name, oib, address, birth_date, hire_date, training_start_date,
+                     (name, oib, address, birth_date, hire_date,
                       next_physical_date, next_psych_date, invalidity, 
                       children_under15, sole_caregiver)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
-                  (data['name'], data['oib'], data['address'], birth_date,
-                   hire_date, hire_date, next_phys, next_psy,
-                   int(data['invalidity']), int(data['children']), int(data['sole'])))
-        
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                 (data['name'], data['oib'], data['address'], birth_date,
+                  hire_date, next_phys, next_psy,
+                  data['invalidity'], data['children'], data['sole']))
         conn.commit()
-        emp_id = c.lastrowid
-        
-        for job in st.session_state.new_jobs:
-            c.execute('''INSERT INTO prev_jobs (emp_id,company,start_date,end_date)
-                        VALUES (?,?,?,?)''',
-                     (emp_id, job['company'], 
-                      parse_date(job['start']), 
-                      parse_date(job['end'])))
-        conn.commit()
-        return True
+        return c.lastrowid
     except Exception as e:
-        st.error(f"Greška pri dodavanju: {str(e)}")
-        return False
+        st.error(f"Greška prilikom dodavanja: {str(e)}")
+        raise e
 
 def edit_employee(emp_id, data):
     try:
