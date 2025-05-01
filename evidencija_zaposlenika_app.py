@@ -660,39 +660,41 @@ def main():
             c3,c4 = st.columns(2)
             with c3:
                 st.markdown('**Fizički pregled**')
-                phys_status = st.radio('Fizički pregled', ['Nema pregled', 'Ima pregled'], 
+                phys_status = st.radio('Status fizičkog pregleda', ['Nema pregled', 'Ima pregled'], 
                                    index=1 if emp['next_physical_date'] else 0,
                                    key='edit_phys_status')
                 if phys_status == 'Ima pregled':
                     try:
-                        next_phys_value = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else date.today()
+                        next_phys_value = datetime.strptime(emp['next_physical_date'],'%Y-%m-%d').date() if emp['next_physical_date'] else None
                     except:
-                        next_phys_value = date.today()
+                        next_phys_value = None
                         
-                    next_phys_date = st.date_input('Datum pregleda',
+                    next_phys_date = st.date_input('Datum sljedećeg pregleda (opcionalno)',
                                          value=next_phys_value,
                                          min_value=date.today(),
                                          format="DD.MM.YYYY",
                                          key='edit_next_phys_date')
+                    next_phys = next_phys_date.strftime('%Y-%m-%d') if next_phys_date else None
                 else:
                     next_phys = None
             
             with c4:
                 st.markdown('**Psihički pregled**')
-                psy_status = st.radio('Psihički pregled', ['Nema pregled', 'Ima pregled'],
+                psy_status = st.radio('Status psihičkog pregleda', ['Nema pregled', 'Ima pregled'],
                                   index=1 if emp['next_psych_date'] else 0,
                                   key='edit_psy_status')
                 if psy_status == 'Ima pregled':
                     try:
-                        next_psy_value = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else date.today()
+                        next_psy_value = datetime.strptime(emp['next_psych_date'],'%Y-%m-%d').date() if emp['next_psych_date'] else None
                     except:
-                        next_psy_value = date.today()
+                        next_psy_value = None
                         
-                    next_psy_date = st.date_input('Datum pregleda',
+                    next_psy_date = st.date_input('Datum sljedećeg pregleda (opcionalno)',
                                         value=next_psy_value,
                                         min_value=date.today(),
                                         format="DD.MM.YYYY",
                                         key='edit_next_psy_date')
+                    next_psy = next_psy_date.strftime('%Y-%m-%d') if next_psy_date else None
                 else:
                     next_psy = None
 
@@ -718,8 +720,8 @@ def main():
                         'oib': oib,
                         'address': address,
                         'hire': hire.strftime('%Y-%m-%d'),
-                        'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
-                        'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
+                        'next_phys': next_phys,
+                        'next_psy': next_psy,
                         'invalidity': invalidity,
                         'children': children,
                         'sole': sole,
