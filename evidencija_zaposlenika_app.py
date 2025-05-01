@@ -365,22 +365,18 @@ def main():
         leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
         
         # Forma za dodavanje novog godišnjeg
-        with st.form("add_leave", clear_on_submit=True):
-            st.markdown("### Dodaj novi godišnji")
+        with st.form("add_leave"):
+            st.subheader("Dodaj novi godišnji")
             col1, col2 = st.columns(2)
             with col1:
                 start_date = st.date_input(
                     "Početak godišnjeg",
-                    value=None,
-                    format="DD.MM.YYYY.",
-                    key="start_date"
+                    value=None
                 )
             with col2:
                 end_date = st.date_input(
                     "Kraj godišnjeg",
-                    value=None,
-                    format="DD.MM.YYYY.",
-                    key="end_date"
+                    value=None
                 )
             
             # Dodajemo submit button
@@ -517,7 +513,7 @@ def main():
                 selected_employee = next(emp for emp in employees if emp['name'] == selected)
         
         # Forma za unos/uređivanje podataka
-        with st.form("employee_form", clear_on_submit=True):
+        with st.form("employee_form"):
             st.markdown("### Podaci o zaposleniku")
             
             # Osnovni podaci
@@ -526,17 +522,18 @@ def main():
                 name = st.text_input("Ime i prezime", value=selected_employee['name'] if selected_employee else "")
                 oib = st.text_input("OIB", value=selected_employee['oib'] if selected_employee else "")
                 address = st.text_input("Adresa", value=selected_employee['address'] if selected_employee else "")
+                
+                # Pojednostavljeni datumski unosi
                 birth_date = st.date_input(
-                    "Datum rođenja", 
-                    value=datetime.strptime(selected_employee['birth_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['birth_date'] else None,
-                    min_value=datetime(1950, 1, 1).date(),
-                    max_value=date.today(),
-                    format="DD.MM.YYYY."
+                    "Datum rođenja",
+                    value=None if not selected_employee or not selected_employee['birth_date'] 
+                          else datetime.strptime(selected_employee['birth_date'], '%Y-%m-%d').date()
                 )
+                
                 hire_date = st.date_input(
                     "Datum zaposlenja",
-                    value=datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date() if selected_employee else date.today(),
-                    format="DD.MM.YYYY."
+                    value=date.today() if not selected_employee 
+                          else datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date()
                 )
             
             with col2:
@@ -552,17 +549,15 @@ def main():
             col1, col2 = st.columns(2)
             with col1:
                 next_physical = st.date_input(
-                    "Datum sljedećeg fizičkog pregleda", 
-                    value=datetime.strptime(selected_employee['next_physical_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_physical_date'] else None,
-                    key="physical_date",
-                    format="DD.MM.YYYY."
+                    "Datum sljedećeg fizičkog pregleda",
+                    value=None if not selected_employee or not selected_employee['next_physical_date']
+                          else datetime.strptime(selected_employee['next_physical_date'], '%Y-%m-%d').date()
                 )
             with col2:
                 next_psych = st.date_input(
                     "Datum sljedećeg psihičkog pregleda",
-                    value=datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_psych_date'] else None,
-                    key="psych_date",
-                    format="DD.MM.YYYY."
+                    value=None if not selected_employee or not selected_employee['next_psych_date']
+                          else datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date()
                 )
             
             # Staž prije
@@ -578,9 +573,10 @@ def main():
             # Pretvori u ukupne dane za spremanje
             total_days = years * 365 + months * 30 + days
             
-            # Gumb za spremanje - premjestimo ga na kraj forme
             # Gumb za spremanje
-            if st.form_submit_button("Spremi"):
+            submitted = st.form_submit_button("💾 Spremi")
+            
+            if submitted:
                 try:
                     data = {
                         'name': name,
