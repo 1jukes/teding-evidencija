@@ -357,23 +357,25 @@ def main():
         
         # Pojednostavljeno ručno podešavanje dana
         st.markdown("### Ručno podešavanje dana")
-        col1, col2, col3 = st.columns([2,1,1])
+        col1, col2, col3, col4 = st.columns([2,4,1,1])
         
         with col1:
             days = st.number_input("Broj dana", min_value=1, value=1)
         with col2:
+            note = st.text_input("Napomena")
+        with col3:
             if st.button("➕ Dodaj"):
                 try:
-                    add_days_adjustment(emp['id'], days, 'add', "")
-                    st.success("✅ Dani dodani!")
+                    add_days_adjustment(emp['id'], days, 'add', note)
+                    st.success("✅ Dodano dana!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
-        with col3:
+        with col4:
             if st.button("➖ Oduzmi"):
                 try:
-                    add_days_adjustment(emp['id'], days, 'subtract', "")
-                    st.success("✅ Dani oduzeti!")
+                    add_days_adjustment(emp['id'], days, 'subtract', note)
+                    st.success("✅ Oduzeto dana!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
@@ -517,42 +519,6 @@ def main():
                     value=datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_psych_date'] else None,
                     key="psych_date")
             
-            # Prethodna iskustva
-            st.markdown("### Prethodna iskustva")
-            if selected_employee:
-                prev_jobs = get_prev_jobs(selected_employee['id'])
-            else:
-                prev_jobs = []
-            
-            for i, job in enumerate(prev_jobs):
-                col1, col2, col3 = st.columns([2,1,1])
-                with col1:
-                    company = st.text_input(f"Tvrtka {i+1}", value=job['company'])
-                with col2:
-                    start = st.text_input(f"Od {i+1}", value=job['start'])
-                with col3:
-                    end = st.text_input(f"Do {i+1}", value=job['end'])
-            
-            # Dodavanje novog iskustva
-            st.markdown("#### Novo iskustvo")
-            col1, col2, col3 = st.columns([2,1,1])
-            with col1:
-                new_company = st.text_input("Tvrtka")
-            with col2:
-                new_start = st.text_input("Od (DD.MM.YYYY.)")
-            with col3:
-                new_end = st.text_input("Do (DD.MM.YYYY.)")
-            
-            if st.button("Dodaj iskustvo"):
-                if new_company and new_start and new_end:
-                    st.session_state.new_jobs.append({
-                        'company': new_company,
-                        'start': new_start,
-                        'end': new_end
-                    })
-                    st.success("✅ Iskustvo dodano!")
-                    st.rerun()
-
             # Gumb za spremanje
             if st.form_submit_button("Spremi"):
                 try:
