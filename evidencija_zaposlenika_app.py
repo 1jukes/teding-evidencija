@@ -437,55 +437,49 @@ def main():
         
         with c3:
             st.markdown('**Fizički pregled**')
-            current_phys_status = 'Ima pregled' if emp['next_physical_date'] else 'Nema pregled'
             phys_type = st.selectbox(
                 'Status fizičkog pregleda',
                 ['Nema pregled', 'Ima pregled'],
-                index=1 if current_phys_status == 'Ima pregled' else 0,
-                key='edit_phys_type'
+                key='phys_type'
             )
             
             if phys_type == 'Ima pregled':
-                try:
-                    current_date = datetime.strptime(emp['next_physical_date'], '%Y-%m-%d').date() if emp['next_physical_date'] else None
-                except:
-                    current_date = None
-                    
-                next_phys_date = st.date_input(
-                    'Datum sljedećeg pregleda',
-                    value=current_date,
-                    min_value=date.today(),
-                    format="DD.MM.YYYY",
-                    key='edit_next_phys_date'
+                next_phys = st.text_input(
+                    'Datum sljedećeg pregleda (DD.MM.YYYY)',
+                    value="",
+                    key='next_phys_date'
                 )
-                next_phys = next_phys_date.strftime('%Y-%m-%d') if next_phys_date else None
+                # Konvertiramo datum ako je unesen
+                if next_phys:
+                    try:
+                        next_phys = parse_date(next_phys)  # Pretvaramo u YYYY-MM-DD format za bazu
+                    except:
+                        st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
+                        next_phys = None
             else:
                 next_phys = None
         
         with c4:
             st.markdown('**Psihički pregled**')
-            current_psy_status = 'Ima pregled' if emp['next_psych_date'] else 'Nema pregled'
             psy_type = st.selectbox(
                 'Status psihičkog pregleda',
                 ['Nema pregled', 'Ima pregled'],
-                index=1 if current_psy_status == 'Ima pregled' else 0,
-                key='edit_psy_type'
+                key='psy_type'
             )
             
             if psy_type == 'Ima pregled':
-                try:
-                    current_date = datetime.strptime(emp['next_psych_date'], '%Y-%m-%d').date() if emp['next_psych_date'] else None
-                except:
-                    current_date = None
-                    
-                next_psy_date = st.date_input(
-                    'Datum sljedećeg pregleda',
-                    value=current_date,
-                    min_value=date.today(),
-                    format="DD.MM.YYYY",
-                    key='edit_next_psy_date'
+                next_psy = st.text_input(
+                    'Datum sljedećeg pregleda (DD.MM.YYYY)',
+                    value="",
+                    key='next_psy_date'
                 )
-                next_psy = next_psy_date.strftime('%Y-%m-%d') if next_psy_date else None
+                # Konvertiramo datum ako je unesen
+                if next_psy:
+                    try:
+                        next_psy = parse_date(next_psy)  # Pretvaramo u YYYY-MM-DD format za bazu
+                    except:
+                        st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
+                        next_psy = None
             else:
                 next_psy = None
         
@@ -590,13 +584,18 @@ def main():
                 )
                 
                 if phys_type == 'Ima pregled':
-                    next_phys_date = st.date_input(
-                        'Datum pregleda',
-                        value=date.today(),
-                        min_value=date.today(),
-                        format="DD.MM.YYYY",
+                    next_phys = st.text_input(
+                        'Datum sljedećeg pregleda (DD.MM.YYYY)',
+                        value="",
                         key='next_phys_date'
                     )
+                    # Konvertiramo datum ako je unesen
+                    if next_phys:
+                        try:
+                            next_phys = parse_date(next_phys)  # Pretvaramo u YYYY-MM-DD format za bazu
+                        except:
+                            st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
+                            next_phys = None
                 else:
                     next_phys = None
             
@@ -609,13 +608,18 @@ def main():
                 )
                 
                 if psy_type == 'Ima pregled':
-                    next_psy_date = st.date_input(
-                        'Datum pregleda',
-                        value=date.today(),
-                        min_value=date.today(),
-                        format="DD.MM.YYYY",
+                    next_psy = st.text_input(
+                        'Datum sljedećeg pregleda (DD.MM.YYYY)',
+                        value="",
                         key='next_psy_date'
                     )
+                    # Konvertiramo datum ako je unesen
+                    if next_psy:
+                        try:
+                            next_psy = parse_date(next_psy)  # Pretvaramo u YYYY-MM-DD format za bazu
+                        except:
+                            st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
+                            next_psy = None
                 else:
                     next_psy = None
 
@@ -644,8 +648,8 @@ def main():
                             'oib': oib,
                             'address': address,
                             'hire': hire.strftime('%Y-%m-%d'),
-                            'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else None,
-                            'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else None,
+                            'next_phys': next_phys,
+                            'next_psy': next_psy,
                             'invalidity': invalidity,
                             'children': children,
                             'sole': sole,
@@ -696,6 +700,7 @@ def main():
             
             st.markdown('### Pregledi')
             c3,c4 = st.columns(2)
+            
             with c3:
                 st.markdown('**Fizički pregled**')
                 current_phys_status = 'Ima pregled' if emp['next_physical_date'] else 'Nema pregled'
@@ -707,19 +712,19 @@ def main():
                 )
                 
                 if phys_type == 'Ima pregled':
-                    try:
-                        current_date = datetime.strptime(emp['next_physical_date'], '%Y-%m-%d').date() if emp['next_physical_date'] else None
-                    except:
-                        current_date = None
-                        
-                    next_phys_date = st.date_input(
-                        'Datum sljedećeg pregleda',
+                    current_date = format_date(emp['next_physical_date']) if emp['next_physical_date'] else ""
+                    next_phys = st.text_input(
+                        'Datum sljedećeg pregleda (DD.MM.YYYY)',
                         value=current_date,
-                        min_value=date.today(),
-                        format="DD.MM.YYYY",
                         key='edit_next_phys_date'
                     )
-                    next_phys = next_phys_date.strftime('%Y-%m-%d') if next_phys_date else None
+                    # Konvertiramo datum ako je unesen
+                    if next_phys:
+                        try:
+                            next_phys = parse_date(next_phys)  # Pretvaramo u YYYY-MM-DD format za bazu
+                        except:
+                            st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
+                            next_phys = None
                 else:
                     next_phys = None
             
@@ -734,19 +739,19 @@ def main():
                 )
                 
                 if psy_type == 'Ima pregled':
-                    try:
-                        current_date = datetime.strptime(emp['next_psych_date'], '%Y-%m-%d').date() if emp['next_psych_date'] else None
-                    except:
-                        current_date = None
-                        
-                    next_psy_date = st.date_input(
-                        'Datum sljedećeg pregleda',
+                    current_date = format_date(emp['next_psych_date']) if emp['next_psych_date'] else ""
+                    next_psy = st.text_input(
+                        'Datum sljedećeg pregleda (DD.MM.YYYY)',
                         value=current_date,
-                        min_value=date.today(),
-                        format="DD.MM.YYYY",
                         key='edit_next_psy_date'
                     )
-                    next_psy = next_psy_date.strftime('%Y-%m-%d') if next_psy_date else None
+                    # Konvertiramo datum ako je unesen
+                    if next_psy:
+                        try:
+                            next_psy = parse_date(next_psy)  # Pretvaramo u YYYY-MM-DD format za bazu
+                        except:
+                            st.error('Neispravan format datuma. Koristite DD.MM.YYYY')
+                            next_psy = None
                 else:
                     next_psy = None
 
