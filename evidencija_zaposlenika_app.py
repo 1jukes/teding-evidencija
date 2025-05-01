@@ -181,9 +181,10 @@ def add_leave_record(emp_id, s, e):
     conn.commit()
 
 def add_days_adjustment(emp_id, days, operation='add', note=None):
-    adjustment = -days if operation == 'subtract' else days
-    c.execute('INSERT INTO leave_records (emp_id, start_date, end_date, days_adjustment, note) VALUES (?, ?, ?, ?, ?)',
-              (emp_id, date.today().strftime('%Y-%m-%d'), date.today().strftime('%Y-%m-%d'), adjustment, note))
+    days_value = days if operation == 'add' else -days  # Ispravljena logika
+    today = date.today().strftime('%Y-%m-%d')
+    c.execute('INSERT INTO leave_records(emp_id,start_date,end_date,days_adjustment,note) VALUES (?,?,?,?,?)',
+              (emp_id, today, today, days_value, note))
     conn.commit()
 
 def delete_leave_record(emp_id, record_id):
@@ -305,7 +306,21 @@ def main():
         st.write(f"**Ukupno dana godišnjeg:** {leave_days}")
         st.write(f"**Preostalo dana:** {remaining_days}")
 
-        # Pojednostavljeno ručno podešavanje dana
+        # Povijest promjena
+        st.markdown("### Povijest promjena")
+        for record in leave_records:
+            if record['adjustment'] is not None:
+                col1, col2 = st.columns([6, 1])
+                with col1:
+                    operation = "Dodano" if record['adjustment'] > 0 else "Oduzeto"  # Ispravljena logika
+                    st.write(f"**{format_date(record['start'])}**: {operation} {abs(record['adjustment'])} dana - {record['note'] or ''}")
+                with col2:
+                    st.write("")  # Prazan prostor za poravnanje
+                    if st.button("Obriši", key=f"del_{record['id']}", use_container_width=True):
+                        delete_leave_record(emp['id'], record['id'])
+                        st.rerun()
+
+        # Ručno podešavanje dana
         st.markdown("### Ručno podešavanje dana")
         col1, col2, col3, col4 = st.columns([2,4,1,1])
         
@@ -422,7 +437,20 @@ def main():
         if days: staz_prije.append(f"{days}d")
         staz_prije_str = " ".join(staz_prije) if staz_prije else "0d"
         
+        # Staž kod nas
+        staz_kod_nas = compute_tenure(emp['hire_date'])
+        staz_kod_nas_str = format_rd(staz_kod_nas)
+        
+        # Ukupni staž
+        ukupni_staz = relativedelta(date.today(), datetime.strptime(emp['hire_date'], '%Y-%m-%d').date())
+        ukupni_staz = relativedelta(years=ukupni_staz.years + years,
+                                  months=ukupni_staz.months + months,
+                                  days=ukupni_staz.days + days)
+        ukupni_staz_str = format_rd(ukupni_staz)
+        
         st.write(f"**Staž prije:** {staz_prije_str}")
+        st.write(f"**Staž kod nas:** {staz_kod_nas_str}")
+        st.write(f"**Ukupni staž:** {ukupni_staz_str}")
 
         # Godišnji odmor
         st.markdown("### Godišnji odmor")
