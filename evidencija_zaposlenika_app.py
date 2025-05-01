@@ -190,6 +190,19 @@ def delete_leave_record(emp_id, record_id):
         print(f"Error deleting record: {e}")
         return False
 
+# Dodajemo novu funkciju za brisanje zaposlenika
+def delete_employee(emp_id):
+    try:
+        # Prvo brišemo sve zapise o godišnjem odmoru
+        c.execute('DELETE FROM leave_records WHERE emp_id=?', (emp_id,))
+        # Zatim brišemo zaposlenika
+        c.execute('DELETE FROM employees WHERE id=?', (emp_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        st.error(f"❌ Greška prilikom brisanja: {str(e)}")
+        return False
+
 # Business logic
 def compute_tenure(hire):
     d = date.today()
@@ -358,16 +371,17 @@ def main():
                 start_date = st.date_input(
                     "Početak godišnjeg",
                     value=None,
+                    format="DD.MM.YYYY.",
                     key="start_date"
                 )
             with col2:
                 end_date = st.date_input(
                     "Kraj godišnjeg",
                     value=None,
+                    format="DD.MM.YYYY.",
                     key="end_date"
                 )
             
-            # Dodajemo submit button koji je nedostajao
             submitted = st.form_submit_button("Dodaj godišnji")
             
             if submitted:
@@ -475,6 +489,14 @@ def main():
         st.write(f"**Godišnji (prema pravilniku):** {leave_days} dana")
         st.write(f"**Preostali godišnji:** {remaining_days} dana")
 
+        # Dodajemo gumb za brisanje na dnu
+        st.write("---")  # Horizontalna linija za odvajanje
+        if st.button("🗑️ Izbriši zaposlenika", type="secondary"):
+            if st.warning("Jeste li sigurni da želite izbrisati zaposlenika? Ova akcija se ne može poništiti."):
+                if delete_employee(emp['id']):
+                    st.success("✅ Zaposlenik uspješno izbrisan!")
+                    st.rerun()
+
     elif choice == "Dodaj/Uredi zaposlenika":
         employees = get_employees()
         
@@ -496,12 +518,18 @@ def main():
                 name = st.text_input("Ime i prezime", value=selected_employee['name'] if selected_employee else "")
                 oib = st.text_input("OIB", value=selected_employee['oib'] if selected_employee else "")
                 address = st.text_input("Adresa", value=selected_employee['address'] if selected_employee else "")
-                birth_date = st.date_input("Datum rođenja", 
+                birth_date = st.date_input(
+                    "Datum rođenja", 
                     value=datetime.strptime(selected_employee['birth_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['birth_date'] else None,
                     min_value=datetime(1950, 1, 1).date(),
-                    max_value=date.today())
-                hire_date = st.date_input("Datum zaposlenja",
-                    value=datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date() if selected_employee else date.today())
+                    max_value=date.today(),
+                    format="DD.MM.YYYY."
+                )
+                hire_date = st.date_input(
+                    "Datum zaposlenja",
+                    value=datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date() if selected_employee else date.today(),
+                    format="DD.MM.YYYY."
+                )
             
             with col2:
                 invalidity = st.checkbox("Status invaliditeta", 
@@ -515,13 +543,19 @@ def main():
             st.markdown("### Pregledi")
             col1, col2 = st.columns(2)
             with col1:
-                next_physical = st.date_input("Datum sljedećeg fizičkog pregleda", 
+                next_physical = st.date_input(
+                    "Datum sljedećeg fizičkog pregleda", 
                     value=datetime.strptime(selected_employee['next_physical_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_physical_date'] else None,
-                    key="physical_date")
+                    key="physical_date",
+                    format="DD.MM.YYYY."
+                )
             with col2:
-                next_psych = st.date_input("Datum sljedećeg psihičkog pregleda",
+                next_psych = st.date_input(
+                    "Datum sljedećeg psihičkog pregleda",
                     value=datetime.strptime(selected_employee['next_psych_date'], '%Y-%m-%d').date() if selected_employee and selected_employee['next_psych_date'] else None,
-                    key="psych_date")
+                    key="psych_date",
+                    format="DD.MM.YYYY."
+                )
             
             # Staž prije
             st.markdown("### Staž prije")
