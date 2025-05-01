@@ -696,17 +696,31 @@ def main():
                     
                     with col1:
                         st.write("Fizički pregled")
+                        default_next_phys = None
                         if emp['next_physical_date']:
-                            st.write(f"Datum sljedećeg pregleda: {format_date(emp['next_physical_date'])}")
-                        else:
-                            st.write("Nema pregled")
+                            try:
+                                default_next_phys = datetime.strptime(emp['next_physical_date'], '%Y-%m-%d').date()
+                            except:
+                                default_next_phys = None
+                        
+                        next_phys = st.date_input("Datum sljedećeg pregleda",
+                                                value=default_next_phys,
+                                                format="DD.MM.YYYY",
+                                                key="next_phys_date_edit")
                     
                     with col2:
                         st.write("Psihički pregled")
+                        default_next_psy = None
                         if emp['next_psych_date']:
-                            st.write(f"Datum sljedećeg pregleda: {format_date(emp['next_psych_date'])}")
-                        else:
-                            st.write("Nema pregled")
+                            try:
+                                default_next_psy = datetime.strptime(emp['next_psych_date'], '%Y-%m-%d').date()
+                            except:
+                                default_next_psy = None
+                        
+                        next_psy = st.date_input("Datum sljedećeg pregleda",
+                                               value=default_next_psy,
+                                               format="DD.MM.YYYY",
+                                               key="next_psy_date_edit")
                     
                     invalidity = st.checkbox("Invaliditet", value=bool(emp['invalidity']))
                     children = st.number_input("Broj djece mlađe od 15g", 
@@ -721,8 +735,8 @@ def main():
                             'address': address,
                             'birth_date': birth_date.strftime('%Y-%m-%d') if birth_date else '',
                             'hire': hire_date.strftime('%Y-%m-%d'),
-                            'next_phys': next_phys,
-                            'next_psy': next_psy,
+                            'next_phys': next_phys.strftime('%Y-%m-%d') if next_phys else '',
+                            'next_psy': next_psy.strftime('%Y-%m-%d') if next_psy else '',
                             'invalidity': invalidity,
                             'children': children,
                             'sole': sole
