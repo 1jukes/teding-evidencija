@@ -327,7 +327,7 @@ def main():
         # Ručno podešavanje dana
         st.markdown("### Ručno podešavanje dana")
         with st.container():
-            col1, col2, col3, col4 = st.columns([2,4,1,1])
+            col1, col2, col3, col4 = st.columns([2,4,2,2])
             
             with col1:
                 days = st.number_input("Broj dana", min_value=1, value=1)
@@ -336,7 +336,7 @@ def main():
             with col3:
                 if st.button("➕ Dodaj", 
                            use_container_width=True,
-                           type="primary"):  # Poboljšani izgled gumba
+                           type="secondary"):
                     try:
                         add_days_adjustment(emp['id'], days, 'add', note)
                         st.success("✅ Dodano!")
@@ -346,7 +346,7 @@ def main():
             with col4:
                 if st.button("➖ Oduzmi", 
                            use_container_width=True,
-                           type="secondary"):  # Poboljšani izgled gumba
+                           type="secondary"):
                     try:
                         add_days_adjustment(emp['id'], days, 'subtract', note)
                         st.success("✅ Oduzeto!")
