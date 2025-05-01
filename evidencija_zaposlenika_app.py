@@ -361,32 +361,26 @@ def main():
 
         # Evidencija korištenja
         st.markdown("### Evidencija korištenja")
+        st.markdown("#### Dodaj novi godišnji")
 
-        # Forma za dodavanje novog godišnjeg
-        with st.form(key="add_leave_form"):  # Dodali smo jedinstveni ključ formi
-            st.markdown("#### Dodaj novi godišnji")
+        # Jednostavnija forma bez kolona
+        with st.form("godisnji_forma"):
+            start_date = st.date_input(
+                "Početak godišnjeg",
+                value=None,
+                format="DD.MM.YYYY."
+            )
             
-            col1, col2 = st.columns(2)
-            with col1:
-                start_date = st.date_input(
-                    "Početak godišnjeg",
-                    value=None,
-                    format="DD.MM.YYYY.",
-                    key="start_date_input"  # Dodali smo jedinstveni ključ
-                )
-            with col2:
-                end_date = st.date_input(
-                    "Kraj godišnjeg",
-                    value=None,
-                    format="DD.MM.YYYY.",
-                    key="end_date_input"  # Dodali smo jedinstveni ključ
-                )
+            end_date = st.date_input(
+                "Kraj godišnjeg",
+                value=None,
+                format="DD.MM.YYYY."
+            )
             
-            # Submit button mora biti direktno unutar forme, ne unutar kolona
-            submit_button = st.form_submit_button(label="📅 Dodaj godišnji")
+            # Submit button mora biti zadnji element u formi
+            submitted = st.form_submit_button("Dodaj godišnji")
             
-            # Logika nakon submita
-            if submit_button:
+            if submitted:
                 if start_date and end_date:
                     if start_date <= end_date:
                         try:
@@ -404,11 +398,11 @@ def main():
                 else:
                     st.error("❌ Molimo unesite oba datuma!")
 
-        # Prikaz evidencije korištenja (izvan forme)
+        # Prikaz postojećih godišnjih (izvan forme)
         leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
         
         if leave_usage_records:
-            st.markdown("#### Evidencija korištenja godišnjeg")
+            st.markdown("#### Postojeći godišnji")
             for record in sorted(leave_usage_records, key=lambda x: parse_date(x['start']), reverse=True):
                 col1, col2, col3, col4 = st.columns([2,2,2,1])
                 with col1:
