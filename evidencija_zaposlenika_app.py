@@ -338,48 +338,45 @@ def main():
             
             with col1:
                 days = st.number_input("Broj dana", min_value=1, value=1)
-                st.write("")  # Prazan prostor za razmak
-                col3, col4 = st.columns(2)
-                with col3:
-                    if st.button("➕ Dodaj", use_container_width=True, type="secondary"):
-                        try:
-                            add_days_adjustment(emp['id'], days, 'add', note)
-                            st.success("✅ Dodano!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Greška: {str(e)}")
-                with col4:
-                    if st.button("➖ Oduzmi", use_container_width=True, type="secondary"):
-                        try:
-                            add_days_adjustment(emp['id'], days, 'subtract', note)
-                            st.success("✅ Oduzeto!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Greška: {str(e)}")
-            
             with col2:
-                note = st.text_input("Napomena")
+                napomena = st.text_input("Napomena")
+            
+            col3, col4 = st.columns(2)
+            with col3:
+                if st.button("➕ Dodaj", use_container_width=True, type="secondary"):
+                    try:
+                        add_days_adjustment(emp['id'], days, 'add', napomena)
+                        st.success("✅ Dodano!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Greška: {str(e)}")
+            with col4:
+                if st.button("➖ Oduzmi", use_container_width=True, type="secondary"):
+                    try:
+                        add_days_adjustment(emp['id'], days, 'subtract', napomena)
+                        st.success("✅ Oduzeto!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Greška: {str(e)}")
 
         # Evidencija korištenja
         st.markdown("### Evidencija korištenja")
-        leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
-        
-        # Forma za dodavanje novog godišnjeg
         with st.form("add_leave"):
             st.subheader("Dodaj novi godišnji")
             col1, col2 = st.columns(2)
             with col1:
                 start_date = st.date_input(
                     "Početak godišnjeg",
-                    value=None
+                    value=None,
+                    format="DD.MM.YYYY."
                 )
             with col2:
                 end_date = st.date_input(
                     "Kraj godišnjeg",
-                    value=None
+                    value=None,
+                    format="DD.MM.YYYY."
                 )
             
-            # Dodajemo submit button
             submitted = st.form_submit_button("📅 Dodaj godišnji")
             
             if submitted:
@@ -401,6 +398,8 @@ def main():
                     st.error("❌ Molimo unesite oba datuma!")
         
         # Prikaz evidencije korištenja
+        leave_usage_records = [r for r in leave_records if r['adjustment'] is None]
+        
         if leave_usage_records:
             for record in sorted(leave_usage_records, key=lambda x: parse_date(x['start']), reverse=True):
                 col1, col2, col3, col4 = st.columns([2,2,2,1])
