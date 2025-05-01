@@ -21,11 +21,11 @@ if 'start_of_week' not in st.session_state:
 
 # Funkcije za formatiranje datuma
 def format_date(date_str):
-    """Pretvara datum iz YYYY-MM-DD u DD.MM.YYYY format"""
+    """Pretvara datum iz YYYY-MM-DD u DD/MM/YYYY format"""
     if not date_str:
         return ""
     try:
-        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%d.%m.%Y.')
+        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%d/%m/%Y')
     except:
         return date_str
 
@@ -369,13 +369,13 @@ def main():
                 start_date = st.date_input(
                     "Početak godišnjeg",
                     value=None,
-                    format="DD.MM.YYYY."
+                    format="DD/MM/YYYY"
                 )
                 
                 end_date = st.date_input(
                     "Kraj godišnjeg",
                     value=None,
-                    format="DD.MM.YYYY."
+                    format="DD/MM/YYYY"
                 )
                 
                 # Submit button mora biti zadnji element u formi
