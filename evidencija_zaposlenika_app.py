@@ -355,21 +355,25 @@ def main():
             st.write(f"**Iskorišteno dana:** {used_days}")
             st.write(f"**Preostalo dana:** {remaining_days}")
         
-        # Forma za ručno dodavanje/oduzimanje dana
-        with st.form("adjust_days"):
-            st.markdown("### Ručno podešavanje dana")
-            col1, col2 = st.columns(2)
-            with col1:
-                adjustment = st.number_input("Broj dana", min_value=-365, max_value=365)
-            with col2:
-                note = st.text_input("Napomena (npr. 'Neiskorišteni godišnji 2024')")
-            
-            if st.form_submit_button("Spremi promjenu"):
+        # Pojednostavljeno ručno podešavanje dana
+        st.markdown("### Ručno podešavanje dana")
+        col1, col2, col3 = st.columns([2,1,1])
+        
+        with col1:
+            days = st.number_input("Broj dana", min_value=1, value=1)
+        with col2:
+            if st.button("➕ Dodaj"):
                 try:
-                    add_days_adjustment(emp['id'], abs(adjustment), 
-                                     'add' if adjustment > 0 else 'subtract',
-                                     note)
-                    st.success("✅ Promjena uspješno spremljena!")
+                    add_days_adjustment(emp['id'], days, 'add', "")
+                    st.success("✅ Dani dodani!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Greška: {str(e)}")
+        with col3:
+            if st.button("➖ Oduzmi"):
+                try:
+                    add_days_adjustment(emp['id'], days, 'subtract', "")
+                    st.success("✅ Dani oduzeti!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
@@ -427,94 +431,43 @@ def main():
         else:
             st.write("Nema evidencije korištenja godišnjeg odmora.")
 
-    elif choice == "Pregledaj zaposlenika":
-        employees = get_employees()
-        if not employees:
-            st.warning("Nema zaposlenika u bazi.")
-            return
+    elif choice == "Pregled zaposlenika":
+        rows = []
+        for e in get_employees():
+            rd_curr = compute_tenure(e['hire_date'])
+            rd_before = relativedelta()
+            for j in get_prev_jobs(e['id']):
+                rd = relativedelta(
+                    datetime.strptime(parse_date(j['end']),'%Y-%m-%d').date(),
+                    datetime.strptime(parse_date(j['start']),'%Y-%m-%d').date())
+                rd_before += rd
+            rd_tot = rd_curr + rd_before
+            leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'])
             
-        selected = st.selectbox("Odaberi zaposlenika", [emp['name'] for emp in employees])
-        emp = next(emp for emp in employees if emp['name'] == selected)
-        
-        st.markdown("### Podaci o zaposleniku")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write(f"**Ime i prezime:** {emp['name']}")
-            st.write(f"**OIB:** {emp['oib'] or 'Nije unesen'}")
-            st.write(f"**Adresa:** {emp['address'] or 'Nije unesena'}")
-            st.write(f"**Datum rođenja:** {format_date(emp['birth_date']) or 'Nije unesen'}")
-            st.write(f"**Datum zaposlenja:** {format_date(emp['hire_date'])}")
-        
-        with col2:
-            st.write("**Status invaliditeta:** ✅" if emp['invalidity'] else "**Status invaliditeta:** ❌")
-            st.write(f"**Broj djece <15:** {emp['children_under15']}")
-            st.write("**Samohrani roditelj:** ✅" if emp['sole_caregiver'] else "**Samohrani roditelj:** ❌")
-            st.write(f"**Fizički pregled:** {format_date(emp['next_physical_date']) or 'Nema pregleda'}")
-            st.write(f"**Psihički pregled:** {format_date(emp['next_psych_date']) or 'Nema pregleda'}")
-
-        # Prethodna iskustva
-        st.markdown("### Prethodna iskustva")
-        prev_jobs = get_prev_jobs(emp['id'])
-        if prev_jobs:
-            for job in prev_jobs:
-                col1, col2, col3 = st.columns([2,1,1])
-                with col1:
-                    st.write(f"**Tvrtka:** {job['company']}")
-                with col2:
-                    st.write(f"**Od:** {job['start']}")
-                with col3:
-                    st.write(f"**Do:** {job['end']}")
-        else:
-            st.write("Nema unesenih prethodnih iskustava.")
-
-        # Godišnji odmor
-        st.markdown("### Godišnji odmor")
-        leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
-                                 emp['children_under15'], emp['sole_caregiver'])
-        
-        # Računanje iskorištenih dana
-        leave_records = get_leave_records(emp['id'])
-        used_days = 0
-        for record in leave_records:
-            if record['adjustment'] is None:
-                start = datetime.strptime(parse_date(record['start']), '%Y-%m-%d').date()
-                end = datetime.strptime(parse_date(record['end']), '%Y-%m-%d').date()
-                used_days += (end - start).days + 1
-            else:
-                used_days -= record['adjustment']
-        
-        remaining_days = leave_days - used_days
-        
-        st.write(f"**Godišnji (prema pravilniku):** {leave_days} dana")
-        st.write(f"**Preostali godišnji:** {remaining_days} dana")
-        
-        # Ručno podešavanje dana
-        st.markdown("### Ručno podešavanje dana")
-        col1, col2, col3 = st.columns([2,3,1])
-        
-        with col1:
-            days = st.number_input("Broj dana", min_value=1, value=1)
-        with col2:
-            note = st.text_input("Napomena (npr. 'Neiskorišteni godišnji 2024')")
-        with col3:
-            col3_1, col3_2 = st.columns(2)
-            with col3_1:
-                if st.button("➕", help="Dodaj dane"):
-                    try:
-                        add_days_adjustment(emp['id'], days, 'add', note)
-                        st.success("✅ Dani dodani!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Greška: {str(e)}")
-            with col3_2:
-                if st.button("➖", help="Oduzmi dane"):
-                    try:
-                        add_days_adjustment(emp['id'], days, 'subtract', note)
-                        st.success("✅ Dani oduzeti!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Greška: {str(e)}")
+            # Računanje ukupno iskorištenih dana
+            leave_records = get_leave_records(e['id'])
+            used = 0
+            for lr in leave_records:
+                if lr['adjustment'] is None:
+                    used += (datetime.strptime(parse_date(lr['end']),'%Y-%m-%d').date() - 
+                            datetime.strptime(parse_date(lr['start']),'%Y-%m-%d').date()).days + 1
+                else:
+                    used -= lr['adjustment']
+            
+            rem = leave - used
+            
+            rows.append({
+                'Ime':e['name'],
+                'Datum zapos.':format_date(e['hire_date']),
+                'Staž prije':format_rd(rd_before),
+                'Staž kod nas':format_rd(rd_curr),
+                'Ukupno staž':format_rd(rd_tot),
+                'Godišnji (dana)':leave,
+                'Preostalo godišnji':rem,
+                'Sljedeći fiz. pregled':format_date(e['next_physical_date']) or 'Nema pregleda',
+                'Sljedeći psih. pregled':format_date(e['next_psych_date']) or 'Nema pregleda'
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True)
 
     elif choice == "Dodaj/Uredi zaposlenika":
         employees = get_employees()
@@ -572,7 +525,7 @@ def main():
                 prev_jobs = []
             
             for i, job in enumerate(prev_jobs):
-                col1, col2, col3, col4 = st.columns([2,1,1,1])
+                col1, col2, col3 = st.columns([2,1,1])
                 with col1:
                     company = st.text_input(f"Tvrtka {i+1}", value=job['company'])
                 with col2:
@@ -580,6 +533,26 @@ def main():
                 with col3:
                     end = st.text_input(f"Do {i+1}", value=job['end'])
             
+            # Dodavanje novog iskustva
+            st.markdown("#### Novo iskustvo")
+            col1, col2, col3 = st.columns([2,1,1])
+            with col1:
+                new_company = st.text_input("Tvrtka")
+            with col2:
+                new_start = st.text_input("Od (DD.MM.YYYY.)")
+            with col3:
+                new_end = st.text_input("Do (DD.MM.YYYY.)")
+            
+            if st.button("Dodaj iskustvo"):
+                if new_company and new_start and new_end:
+                    st.session_state.new_jobs.append({
+                        'company': new_company,
+                        'start': new_start,
+                        'end': new_end
+                    })
+                    st.success("✅ Iskustvo dodano!")
+                    st.rerun()
+
             # Gumb za spremanje
             if st.form_submit_button("Spremi"):
                 try:
@@ -605,6 +578,68 @@ def main():
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška: {str(e)}")
+
+    elif choice == "Pregledaj zaposlenika":
+        employees = get_employees()
+        if not employees:
+            st.warning("Nema zaposlenika u bazi.")
+            return
+            
+        selected = st.selectbox("Odaberi zaposlenika", [emp['name'] for emp in employees])
+        emp = next(emp for emp in employees if emp['name'] == selected)
+        
+        st.markdown("### Podaci o zaposleniku")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write(f"**Ime i prezime:** {emp['name']}")
+            st.write(f"**OIB:** {emp['oib'] or 'Nije unesen'}")
+            st.write(f"**Adresa:** {emp['address'] or 'Nije unesena'}")
+            st.write(f"**Datum rođenja:** {format_date(emp['birth_date']) or 'Nije unesen'}")
+            st.write(f"**Datum zaposlenja:** {format_date(emp['hire_date'])}")
+        
+        with col2:
+            st.write("**Status invaliditeta:** ✅" if emp['invalidity'] else "**Status invaliditeta:** ❌")
+            st.write(f"**Broj djece <15:** {emp['children_under15']}")
+            st.write("**Samohrani roditelj:** ✅" if emp['sole_caregiver'] else "**Samohrani roditelj:** ❌")
+            st.write(f"**Fizički pregled:** {format_date(emp['next_physical_date']) or 'Nema pregleda'}")
+            st.write(f"**Psihički pregled:** {format_date(emp['next_psych_date']) or 'Nema pregleda'}")
+
+        # Prethodna iskustva
+        st.markdown("### Prethodna iskustva")
+        prev_jobs = get_prev_jobs(emp['id'])
+        if prev_jobs:
+            for job in prev_jobs:
+                col1, col2, col3 = st.columns([2,1,1])
+                with col1:
+                    st.write(f"**Tvrtka:** {job['company']}")
+                with col2:
+                    st.write(f"**Od:** {job['start']}")
+                with col3:
+                    st.write(f"**Do:** {job['end']}")
+        else:
+            st.write("Nema unesenih prethodnih iskustava.")
+
+        # Godišnji odmor - pojednostavljeni prikaz
+        st.markdown("### Godišnji odmor")
+        leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
+                                 emp['children_under15'], emp['sole_caregiver'])
+        
+        # Računanje iskorištenih dana
+        leave_records = get_leave_records(emp['id'])
+        used_days = 0
+        for record in leave_records:
+            if record['adjustment'] is None:
+                start = datetime.strptime(parse_date(record['start']), '%Y-%m-%d').date()
+                end = datetime.strptime(parse_date(record['end']), '%Y-%m-%d').date()
+                used_days += (end - start).days + 1
+            else:
+                used_days -= record['adjustment']
+        
+        remaining_days = leave_days - used_days
+        
+        st.write(f"**Godišnji (prema pravilniku):** {leave_days} dana")
+        st.write(f"**Preostali godišnji:** {remaining_days} dana")
 
 if __name__=='__main__':
     main()
