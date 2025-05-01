@@ -367,7 +367,7 @@ def main():
             
             with col1:
                 days = st.number_input("Broj dana", min_value=1, value=1)
-                st.write("")  # Prazan prostor
+                st.write("")  # Prazan prostor za razmak
                 col3, col4 = st.columns(2)
                 with col3:
                     if st.button("➕ Dodaj", use_container_width=True, type="secondary"):
