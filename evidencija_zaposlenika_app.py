@@ -4,39 +4,8 @@ import pandas as pd
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 import hashlib
-import locale
 import base64
 import time
-
-# Postavljanje hrvatskog lokalnog vremena
-def setup_locale():
-    locales_to_try = [
-        'hr_HR.UTF-8',
-        'hr_HR.utf8',
-        'Croatian.UTF-8',
-        'Croatian',
-        'hr_HR',
-        'hr'
-    ]
-    
-    for loc in locales_to_try:
-        try:
-            locale.setlocale(locale.LC_ALL, loc)
-            return True
-        except locale.Error:
-            continue
-    
-    # Ako nijedan locale nije uspio, postavimo default
-    try:
-        locale.setlocale(locale.LC_ALL, '')
-        return True
-    except:
-        pass
-    
-    return False
-
-# Pokušaj postaviti hrvatski locale
-setup_locale()
 
 # Konfiguracija stranice
 st.set_page_config(
@@ -45,17 +14,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Konfiguracija za datumske unose na hrvatskom
-locale.setlocale(locale.LC_TIME, 'hr_HR.UTF-8')
-st.markdown("""
-<style>
-/* Prijevod kalendara na hrvatski */
-button[data-baseweb="calendar"] div {
-    font-family: "Source Sans Pro", sans-serif;
-}
-</style>
-""", unsafe_allow_html=True)
 
 # Postavljanje početka tjedna na ponedjeljak
 if 'start_of_week' not in st.session_state:
