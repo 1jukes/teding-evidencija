@@ -78,7 +78,7 @@ def check_password():
 
 # Database connection
 def init_db():
-    conn = sqlite3.connect('employees.db', check_same_thread=False)
+    conn = sqlite3.connect('employees.db', check_same_thread=False, timeout=10)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS employees (
