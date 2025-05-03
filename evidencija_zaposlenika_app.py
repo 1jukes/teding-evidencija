@@ -694,13 +694,14 @@ def main():
 
             rows.append({
                 'Ime': e['name'],
-                'Datum zapos.': e['hire_date'],  # ISO format za ispravno sortiranje
-                'Staž prije (dani)': total_days,
+                'Datum zapos.': e['hire_date'],
+                'Datum zapos. sort': datetime.strptime(e['hire_date'], '%Y-%m-%d'),
                 'Staž prije': staz_prije_str,
-                'Staž kod nas (dani)': staz_kod_nas_days,
+                'Staž prije sort': total_days,
                 'Staž kod nas': staz_kod_nas_str,
-                'Ukupni staž (dani)': ukupni_staz_days,
+                'Staž kod nas sort': staz_kod_nas_days,
                 'Ukupni staž': ukupni_staz_str,
+                'Ukupni staž sort': ukupni_staz_days,
                 'Godišnji (dana)': leave,
                 'Preostalo godišnji': rem,
                 'Sljedeći fiz. pregled': format_date(e['next_physical_date']) or 'Nema pregleda',
@@ -709,15 +710,25 @@ def main():
 
         df = pd.DataFrame(rows)
 
-        # Prikaz tablice s numeričkim vrijednostima za sortiranje
+        # Omogući korisniku odabir sortiranja
+        sort_options = {
+            "Ime": "Ime",
+            "Datum zapos.": "Datum zapos. sort",
+            "Staž prije": "Staž prije sort",
+            "Staž kod nas": "Staž kod nas sort",
+            "Ukupni staž": "Ukupni staž sort"
+        }
+        sort_by = st.selectbox("Sortiraj po:", list(sort_options.keys()), index=0)
+        ascending = st.radio("Rast. poredak?", ["Da", "Ne"], index=0) == "Da"
+
+        df = df.sort_values(by=sort_options[sort_by], ascending=ascending)
+
+        # Prikaz samo formatiranih vrijednosti
         st.dataframe(
             df[[
-                "Ime", "Datum zapos.", "Staž prije (dani)", "Staž prije",
-                "Staž kod nas (dani)", "Staž kod nas",
-                "Ukupni staž (dani)", "Ukupni staž",
-                "Godišnji (dana)", "Preostalo godišnji",
-                "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
-            ]],
+                "Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
+                "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
+            ]].reset_index(drop=True),
             use_container_width=True,
             height=800
         )
