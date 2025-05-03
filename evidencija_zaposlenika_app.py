@@ -694,14 +694,13 @@ def main():
 
             rows.append({
                 'Ime': e['name'],
-                'Datum zapos.': e['hire_date'],
-                'Datum zapos. sort': datetime.strptime(e['hire_date'], '%Y-%m-%d'),
+                'Datum zapos.': e['hire_date'],  # ISO format za ispravno sortiranje
+                'Staž prije (dani)': total_days,
                 'Staž prije': staz_prije_str,
-                'Staž prije sort': total_days,
+                'Staž kod nas (dani)': staz_kod_nas_days,
                 'Staž kod nas': staz_kod_nas_str,
-                'Staž kod nas sort': staz_kod_nas_days,
+                'Ukupni staž (dani)': ukupni_staz_days,
                 'Ukupni staž': ukupni_staz_str,
-                'Ukupni staž sort': ukupni_staz_days,
                 'Godišnji (dana)': leave,
                 'Preostalo godišnji': rem,
                 'Sljedeći fiz. pregled': format_date(e['next_physical_date']) or 'Nema pregleda',
@@ -710,14 +709,17 @@ def main():
 
         df = pd.DataFrame(rows)
 
-        # Prikaz tablice (Streamlit automatski omogućuje sortiranje po prikazanim stupcima)
+        # Prikaz tablice s numeričkim vrijednostima za sortiranje
         st.dataframe(
             df[[
-                "Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-                "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
+                "Ime", "Datum zapos.", "Staž prije (dani)", "Staž prije",
+                "Staž kod nas (dani)", "Staž kod nas",
+                "Ukupni staž (dani)", "Ukupni staž",
+                "Godišnji (dana)", "Preostalo godišnji",
+                "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
             ]],
             use_container_width=True,
-            height=800  # Povećaj visinu tablice po želji
+            height=800
         )
 
 if __name__=='__main__':
