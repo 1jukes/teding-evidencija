@@ -288,18 +288,17 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
     return days
 
 def parse_date_for_sort(date_str):
-    # Vrati string datuma u formatu DD-MM-YYYY ili prazan string ako nema pregleda
+    # Vrati string datuma u formatu DD-MM-YYYY ili 'Nema pregleda' ako nema pregleda
     try:
         if date_str and date_str != "Nema pregleda":
-            # Prvo pokušaj s DD/MM/YYYY
             try:
                 dt = datetime.strptime(date_str, "%d/%m/%Y")
             except:
                 dt = datetime.strptime(date_str, "%Y-%m-%d")
             return dt.strftime("%d-%m-%Y")
     except:
-        return ""
-    return ""
+        return "Nema pregleda"
+    return "Nema pregleda"
 
 def main():
     if not check_password():
@@ -718,9 +717,8 @@ def main():
             fiz_pregled = format_date(e['next_physical_date']) or 'Nema pregleda'
             psih_pregled = format_date(e['next_psych_date']) or 'Nema pregleda'
 
-            # Za prikaz i sortiranje koristi sortirani string
-            fiz_pregled_sort = parse_date_for_sort(fiz_pregled) or 'Nema pregleda'
-            psih_pregled_sort = parse_date_for_sort(psih_pregled) or 'Nema pregleda'
+            fiz_pregled_sort = parse_date_for_sort(fiz_pregled)
+            psih_pregled_sort = parse_date_for_sort(psih_pregled)
 
             rows.append({
                 'Ime': e['name'],
@@ -736,11 +734,10 @@ def main():
 
         df = pd.DataFrame(rows)
 
-        # Prikaz tablice s jednim sortirajućim prikazom (npr. za fiz. pregled)
         st.dataframe(
             df[
                 ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-                 "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled"]
+                 "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"]
             ].reset_index(drop=True),
             use_container_width=True,
             height=800
