@@ -288,14 +288,14 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
     return days
 
 def parse_date_for_sort(date_str):
-    # Vrati string datuma u formatu DD-MM-YYYY ili 'Nema pregleda' ako nema pregleda
+    # Vrati string datuma u formatu YYYY-MM-DD ili 'Nema pregleda' ako nema pregleda
     try:
         if date_str and date_str != "Nema pregleda":
             try:
                 dt = datetime.strptime(date_str, "%d/%m/%Y")
             except:
                 dt = datetime.strptime(date_str, "%Y-%m-%d")
-            return dt.strftime("%d-%m-%Y")
+            return dt.strftime("%Y-%m-%d")
     except:
         return "Nema pregleda"
     return "Nema pregleda"
