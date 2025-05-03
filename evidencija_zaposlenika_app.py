@@ -718,6 +718,10 @@ def main():
             fiz_pregled = format_date(e['next_physical_date']) or 'Nema pregleda'
             psih_pregled = format_date(e['next_psych_date']) or 'Nema pregleda'
 
+            # Za prikaz i sortiranje koristi sortirani string
+            fiz_pregled_sort = parse_date_for_sort(fiz_pregled) or 'Nema pregleda'
+            psih_pregled_sort = parse_date_for_sort(psih_pregled) or 'Nema pregleda'
+
             rows.append({
                 'Ime': e['name'],
                 'Datum zapos.': e['hire_date'],
@@ -726,19 +730,17 @@ def main():
                 'Ukupni staž': ukupni_staz_str,
                 'Godišnji (dana)': leave,
                 'Preostalo godišnji': rem,
-                'Sljedeći fiz. pregled': fiz_pregled,
-                'Sljedeći fiz. pregled sort': parse_date_for_sort(fiz_pregled),
-                'Sljedeći psih. pregled': psih_pregled,
-                'Sljedeći psih. pregled sort': parse_date_for_sort(psih_pregled)
+                'Sljedeći fiz. pregled': fiz_pregled_sort,
+                'Sljedeći psih. pregled': psih_pregled_sort
             })
 
         df = pd.DataFrame(rows)
 
+        # Prikaz tablice s jednim sortirajućim prikazom (npr. za fiz. pregled)
         st.dataframe(
             df[
                 ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-                 "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled",
-                 "Sljedeći fiz. pregled sort", "Sljedeći psih. pregled sort"]
+                 "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled"]
             ].reset_index(drop=True),
             use_container_width=True,
             height=800
