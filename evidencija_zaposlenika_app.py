@@ -287,6 +287,18 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
 
     return days
 
+def parse_date_for_sort(date_str):
+    # Vrati datetime objekt ili None ako nema pregleda
+    try:
+        if date_str and date_str != "Nema pregleda":
+            return datetime.strptime(date_str, "%d/%m/%Y")
+    except:
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d")
+        except:
+            return None
+    return None
+
 def main():
     if not check_password():
         return
@@ -701,6 +713,9 @@ def main():
 
             rem = leave - used
 
+            fiz_pregled = format_date(e['next_physical_date']) or 'Nema pregleda'
+            psih_pregled = format_date(e['next_psych_date']) or 'Nema pregleda'
+
             rows.append({
                 'Ime': e['name'],
                 'Datum zapos.': e['hire_date'],
@@ -709,20 +724,21 @@ def main():
                 'Ukupni staž': ukupni_staz_str,
                 'Godišnji (dana)': leave,
                 'Preostalo godišnji': rem,
-                'Sljedeći fiz. pregled': format_date(e['next_physical_date']) or 'Nema pregleda',
-                'Sljedeći psih. pregled': format_date(e['next_psych_date']) or 'Nema pregleda'
+                'Sljedeći fiz. pregled': fiz_pregled,
+                'Sljedeći fiz. pregled sort': parse_date_for_sort(fiz_pregled),
+                'Sljedeći psih. pregled': psih_pregled,
+                'Sljedeći psih. pregled sort': parse_date_for_sort(psih_pregled)
             })
 
         df = pd.DataFrame(rows)
 
-        # Sortiraj po imenu ili po datumu zaposlenja (po želji)
-        df = df.sort_values(by="Ime")  # ili by="Datum zapos." za sortiranje po datumu
-
+        # Po defaultu sortiraj po imenu, ali korisnik može kliknuti na zaglavlje bilo kojeg stupca
         st.dataframe(
             df[
                 ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-                 "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"]
-            ].reset_index(drop=True),
+                 "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled",
+                 "Sljedeći fiz. pregled sort", "Sljedeći psih. pregled sort"]
+            ].sort_values(by="Ime").reset_index(drop=True),
             use_container_width=True,
             height=800
         )
