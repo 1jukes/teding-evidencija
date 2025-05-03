@@ -245,40 +245,46 @@ def format_rd(rd):
     if days: parts.append(f"{days}d")
     return ' '.join(parts) or '0d'
 
-def compute_leave(hire, invalidity, children, sole):
+def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
     """
     Računanje godišnjeg odmora prema pravilniku:
     - Osnovno: 20 dana
     - Invaliditet: +5 dana
-    - Samohranitelj: +3 dana
+    - Samohrani roditelj: +3 dana
     - Djeca: 1 dijete = +1 dan, 2 ili više = +2 dana
-    - Staž: 10-20g = +1 dan, 20-30g = +2 dana, 30+ = +3 dana
+    - Ukupni radni staž: 10-20g = +1 dan, 20-30g = +2 dana, 30+ = +3 dana
     """
-    y = relativedelta(date.today(), datetime.strptime(hire, '%Y-%m-%d').date()).years
-    
+    # Staž kod trenutnog poslodavca
+    staz_kod_nas = relativedelta(date.today(), datetime.strptime(hire, '%Y-%m-%d').date())
+    staz_kod_nas_days = staz_kod_nas.years * 365 + staz_kod_nas.months * 30 + staz_kod_nas.days
+
+    # Ukupni radni staž u danima
+    ukupni_staz_dani = previous_experience_days + staz_kod_nas_days
+    ukupni_staz_godina = ukupni_staz_dani // 365
+
     # Osnovno
     days = 20
-    
+
     # Invaliditet
     if invalidity:
         days += 5
-        
-    # Staž
-    if 10 <= y < 20:
+
+    # Staž (ukupni)
+    if 10 <= ukupni_staz_godina < 20:
         days += 1
-    elif 20 <= y < 30:
+    elif 20 <= ukupni_staz_godina < 30:
         days += 2
-    elif y >= 30:
+    elif ukupni_staz_godina >= 30:
         days += 3
-        
-    # Djeca i samohranitelj
+
+    # Djeca i samohrani roditelj
     if sole:
         days += 3
     elif children == 1:
         days += 1
     elif children >= 2:
         days += 2
-        
+
     return days
 
 def main():
@@ -305,7 +311,8 @@ def main():
         # Osnovni podaci o godišnjem
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
-                                 emp['children_under15'], emp['sole_caregiver'])
+                                 emp['children_under15'], emp['sole_caregiver'],
+                                 emp.get('previous_experience_days', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -487,7 +494,8 @@ def main():
         # Godišnji odmor
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
-                                 emp['children_under15'], emp['sole_caregiver'])
+                                 emp['children_under15'], emp['sole_caregiver'],
+                                 emp.get('previous_experience_days', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -677,7 +685,8 @@ def main():
             ukupni_staz_str = format_rd(ukupni_staz)
             ukupni_staz_days = ukupni_staz.years * 365 + ukupni_staz.months * 30 + ukupni_staz.days
 
-            leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'])
+            leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'],
+                                  e.get('previous_experience_days', 0))
 
             # Računanje ukupno iskorištenih dana
             leave_records = get_leave_records(e['id'])
