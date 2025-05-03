@@ -581,14 +581,45 @@ def main():
             st.markdown("### Staž prije")
             col1, col2, col3 = st.columns(3)
             with col1:
-                years = st.number_input("Godine", min_value=0, value=0)
+                years = st.number_input("Godine", min_value=0, value=(
+                    selected_employee['previous_experience_days'] // 365 if selected_employee else 0
+                ))
             with col2:
-                months = st.number_input("Mjeseci", min_value=0, max_value=11, value=0)
+                months = st.number_input("Mjeseci", min_value=0, max_value=11, value=(
+                    (selected_employee['previous_experience_days'] % 365) // 30 if selected_employee else 0
+                ))
             with col3:
-                days = st.number_input("Dani", min_value=0, max_value=30, value=0)
-            
-            # Pretvori u ukupne dane za spremanje
-            total_days = (years or 0) * 365 + (months or 0) * 30 + (days or 0)
+                days = st.number_input("Dani", min_value=0, max_value=30, value=(
+                    (selected_employee['previous_experience_days'] % 365) % 30 if selected_employee else 0
+                ))
+
+            # Prikaz ukupnog staža za odabranog zaposlenika
+            if selected_employee:
+                # Staž prije
+                total_days = selected_employee.get('previous_experience_days', 0)
+                y = total_days // 365
+                rem = total_days % 365
+                m = rem // 30
+                d = rem % 30
+
+                # Staž kod nas
+                staz_kod_nas = compute_tenure(selected_employee['hire_date'])
+
+                # Ukupni staž
+                ukupni_staz = relativedelta(
+                    years=staz_kod_nas.years + y,
+                    months=staz_kod_nas.months + m,
+                    days=staz_kod_nas.days + d
+                )
+
+                # Formatiraj prikaz
+                parts = []
+                if ukupni_staz.years: parts.append(f"{ukupni_staz.years}g")
+                if ukupni_staz.months: parts.append(f"{ukupni_staz.months}m")
+                if ukupni_staz.days: parts.append(f"{ukupni_staz.days}d")
+                ukupni_staz_str = " ".join(parts) if parts else "0d"
+
+                st.info(f"**Ukupni staž:** {ukupni_staz_str}")
             
             # Gumb za spremanje
             submitted = st.form_submit_button("💾 Spremi")
@@ -606,7 +637,7 @@ def main():
                         'sole_caregiver': sole_caregiver,
                         'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
                         'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None,
-                        'previous_experience_days': total_days,
+                        'previous_experience_days': (years or 0) * 365 + (months or 0) * 30 + (days or 0),
                         'training_start_date': date.today().strftime('%Y-%m-%d')
                     }
                     
@@ -638,6 +669,23 @@ def main():
             if days: staz_prije.append(f"{days}d")
             staz_prije_str = " ".join(staz_prije) if staz_prije else "0d"
             
+            # Staž kod nas
+            staz_kod_nas = compute_tenure(e['hire_date'])
+            staz_kod_nas_str = format_rd(staz_kod_nas)
+            
+            # Ukupni staž (relativedelta + prethodni dani)
+            ukupni_staz = relativedelta(date.today(), datetime.strptime(e['hire_date'], '%Y-%m-%d').date())
+            ukupni_staz = relativedelta(years=ukupni_staz.years + years,
+                                      months=ukupni_staz.months + months,
+                                      days=ukupni_staz.days + days)
+            ukupni_staz_str = format_rd(ukupni_staz)
+            
+            # Za sortiranje
+            datum_zaposlenja_sort = datetime.strptime(e['hire_date'], '%Y-%m-%d')
+            staz_prije_sort = total_days
+            staz_kod_nas_sort = staz_kod_nas.years * 365 + staz_kod_nas.months * 30 + staz_kod_nas.days
+            ukupni_staz_sort = staz_prije_sort + staz_kod_nas_sort
+            
             leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'])
             
             # Računanje ukupno iskorištenih dana
@@ -654,16 +702,46 @@ def main():
             rem = leave - used
             
             rows.append({
-                'Ime':e['name'],
-                'Datum zapos.':format_date(e['hire_date']),
+                'ID': e['id'],
+                'Ime': e['name'],
+                'Datum zapos.': e['hire_date'],
+                'Datum zapos. sort': datum_zaposlenja_sort,
                 'Staž prije': staz_prije_str,
-                'Staž kod nas':format_rd(rd_curr),
-                'Godišnji (dana)':leave,
-                'Preostalo godišnji':rem,
-                'Sljedeći fiz. pregled':format_date(e['next_physical_date']) or 'Nema pregleda',
-                'Sljedeći psih. pregled':format_date(e['next_psych_date']) or 'Nema pregleda'
+                'Staž prije sort': staz_prije_sort,
+                'Staž kod nas': staz_kod_nas_str,
+                'Staž kod nas sort': staz_kod_nas_sort,
+                'Ukupni staž': ukupni_staz_str,
+                'Ukupni staž sort': ukupni_staz_sort,
+                'Godišnji (dana)': leave,
+                'Preostalo godišnji': rem,
+                'Sljedeći fiz. pregled': format_date(e['next_physical_date']) or 'Nema pregleda',
+                'Sljedeći psih. pregled': format_date(e['next_psych_date']) or 'Nema pregleda'
             })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True)
+        
+        # Pretvori u DataFrame radi lakšeg sortiranja
+        df = pd.DataFrame(rows)
+        
+        # Sorteri za prikaz
+        sort_col = st.selectbox(
+            "Sortiraj po:",
+            ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž"]
+        )
+        ascending = st.radio("Rast. poredak?", ["Da", "Ne"]) == "Da"
+        
+        sort_map = {
+            "Ime": "Ime",
+            "Datum zapos.": "Datum zapos. sort",
+            "Staž prije": "Staž prije sort",
+            "Staž kod nas": "Staž kod nas sort",
+            "Ukupni staž": "Ukupni staž sort"
+        }
+        df = df.sort_values(by=sort_map[sort_col], ascending=ascending)
+        
+        # Prikaz tablice bez pomoćnih stupaca za sortiranje
+        st.dataframe(df[[
+            "Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
+            "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
+        ]], use_container_width=True)
 
 if __name__=='__main__':
     main()
