@@ -288,16 +288,18 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
     return days
 
 def parse_date_for_sort(date_str):
-    # Vrati datetime objekt ili None ako nema pregleda
+    # Vrati string datuma u formatu DD-MM-YYYY ili prazan string ako nema pregleda
     try:
         if date_str and date_str != "Nema pregleda":
-            return datetime.strptime(date_str, "%d/%m/%Y")
+            # Prvo pokušaj s DD/MM/YYYY
+            try:
+                dt = datetime.strptime(date_str, "%d/%m/%Y")
+            except:
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+            return dt.strftime("%d-%m-%Y")
     except:
-        try:
-            return datetime.strptime(date_str, "%Y-%m-%d")
-        except:
-            return None
-    return None
+        return ""
+    return ""
 
 def main():
     if not check_password():
@@ -732,13 +734,12 @@ def main():
 
         df = pd.DataFrame(rows)
 
-        # Po defaultu sortiraj po imenu, ali korisnik može kliknuti na zaglavlje bilo kojeg stupca
         st.dataframe(
             df[
                 ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
                  "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled",
                  "Sljedeći fiz. pregled sort", "Sljedeći psih. pregled sort"]
-            ].sort_values(by="Ime").reset_index(drop=True),
+            ].reset_index(drop=True),
             use_container_width=True,
             height=800
         )
