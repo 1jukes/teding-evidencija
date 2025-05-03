@@ -535,17 +535,20 @@ def main():
                 oib = st.text_input("OIB", value=selected_employee['oib'] if selected_employee else "")
                 address = st.text_input("Adresa", value=selected_employee['address'] if selected_employee else "")
                 
-                # Pojednostavljeni datumski unosi
                 birth_date = st.date_input(
                     "Datum rođenja",
                     value=None if not selected_employee or not selected_employee['birth_date'] 
-                          else datetime.strptime(selected_employee['birth_date'], '%Y-%m-%d').date()
+                          else datetime.strptime(selected_employee['birth_date'], '%Y-%m-%d').date(),
+                    min_value=date(1950, 1, 1),
+                    format="DD/MM/YYYY"
                 )
                 
                 hire_date = st.date_input(
                     "Datum zaposlenja",
                     value=date.today() if not selected_employee 
-                          else datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date()
+                          else datetime.strptime(selected_employee['hire_date'], '%Y-%m-%d').date(),
+                    min_value=date(1950, 1, 1),
+                    format="DD/MM/YYYY"
                 )
             
             with col2:
