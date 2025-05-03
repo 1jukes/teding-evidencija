@@ -654,40 +654,31 @@ def main():
     elif choice == "Pregled zaposlenika":
         rows = []
         for e in get_employees():
-            rd_curr = compute_tenure(e['hire_date'])
-            
-            # Izračun staža prije iz dana
+            # Staž prije
             total_days = e.get('previous_experience_days', 0)
             years = total_days // 365
             remaining_days = total_days % 365
             months = remaining_days // 30
             days = remaining_days % 30
-            
-            staz_prije = []
-            if years: staz_prije.append(f"{years}g")
-            if months: staz_prije.append(f"{months}m")
-            if days: staz_prije.append(f"{days}d")
-            staz_prije_str = " ".join(staz_prije) if staz_prije else "0d"
-            
+            staz_prije_str = f"{years}g {months}m {days}d" if total_days else "0d"
+
             # Staž kod nas
             staz_kod_nas = compute_tenure(e['hire_date'])
             staz_kod_nas_str = format_rd(staz_kod_nas)
-            
-            # Ukupni staž (relativedelta + prethodni dani)
+            staz_kod_nas_days = staz_kod_nas.years * 365 + staz_kod_nas.months * 30 + staz_kod_nas.days
+
+            # Ukupni staž
             ukupni_staz = relativedelta(date.today(), datetime.strptime(e['hire_date'], '%Y-%m-%d').date())
-            ukupni_staz = relativedelta(years=ukupni_staz.years + years,
-                                      months=ukupni_staz.months + months,
-                                      days=ukupni_staz.days + days)
+            ukupni_staz = relativedelta(
+                years=ukupni_staz.years + years,
+                months=ukupni_staz.months + months,
+                days=ukupni_staz.days + days
+            )
             ukupni_staz_str = format_rd(ukupni_staz)
-            
-            # Za sortiranje
-            datum_zaposlenja_sort = datetime.strptime(e['hire_date'], '%Y-%m-%d')
-            staz_prije_sort = total_days
-            staz_kod_nas_sort = staz_kod_nas.years * 365 + staz_kod_nas.months * 30 + staz_kod_nas.days
-            ukupni_staz_sort = staz_prije_sort + staz_kod_nas_sort
-            
+            ukupni_staz_days = ukupni_staz.years * 365 + ukupni_staz.months * 30 + ukupni_staz.days
+
             leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'])
-            
+
             # Računanje ukupno iskorištenih dana
             leave_records = get_leave_records(e['id'])
             used = 0
@@ -698,50 +689,36 @@ def main():
                     used += (end - start).days + 1
                 else:
                     used -= lr['adjustment']
-            
+
             rem = leave - used
-            
+
             rows.append({
-                'ID': e['id'],
                 'Ime': e['name'],
                 'Datum zapos.': e['hire_date'],
-                'Datum zapos. sort': datum_zaposlenja_sort,
+                'Datum zapos. sort': datetime.strptime(e['hire_date'], '%Y-%m-%d'),
                 'Staž prije': staz_prije_str,
-                'Staž prije sort': staz_prije_sort,
+                'Staž prije sort': total_days,
                 'Staž kod nas': staz_kod_nas_str,
-                'Staž kod nas sort': staz_kod_nas_sort,
+                'Staž kod nas sort': staz_kod_nas_days,
                 'Ukupni staž': ukupni_staz_str,
-                'Ukupni staž sort': ukupni_staz_sort,
+                'Ukupni staž sort': ukupni_staz_days,
                 'Godišnji (dana)': leave,
                 'Preostalo godišnji': rem,
                 'Sljedeći fiz. pregled': format_date(e['next_physical_date']) or 'Nema pregleda',
                 'Sljedeći psih. pregled': format_date(e['next_psych_date']) or 'Nema pregleda'
             })
-        
-        # Pretvori u DataFrame radi lakšeg sortiranja
+
         df = pd.DataFrame(rows)
-        
-        # Sorteri za prikaz
-        sort_col = st.selectbox(
-            "Sortiraj po:",
-            ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž"]
+
+        # Prikaz tablice (Streamlit automatski omogućuje sortiranje po prikazanim stupcima)
+        st.dataframe(
+            df[[
+                "Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
+                "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
+            ]],
+            use_container_width=True,
+            height=800  # Povećaj visinu tablice po želji
         )
-        ascending = st.radio("Rast. poredak?", ["Da", "Ne"]) == "Da"
-        
-        sort_map = {
-            "Ime": "Ime",
-            "Datum zapos.": "Datum zapos. sort",
-            "Staž prije": "Staž prije sort",
-            "Staž kod nas": "Staž kod nas sort",
-            "Ukupni staž": "Ukupni staž sort"
-        }
-        df = df.sort_values(by=sort_map[sort_col], ascending=ascending)
-        
-        # Prikaz tablice bez pomoćnih stupaca za sortiranje
-        st.dataframe(df[[
-            "Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-            "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
-        ]], use_container_width=True)
 
 if __name__=='__main__':
     main()
