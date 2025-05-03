@@ -588,7 +588,7 @@ def main():
                 days = st.number_input("Dani", min_value=0, max_value=30, value=0)
             
             # Pretvori u ukupne dane za spremanje
-            total_days = years * 365 + months * 30 + days
+            total_days = (years or 0) * 365 + (months or 0) * 30 + (days or 0)
             
             # Gumb za spremanje
             submitted = st.form_submit_button("💾 Spremi")
@@ -600,13 +600,14 @@ def main():
                         'oib': oib,
                         'address': address,
                         'birth_date': birth_date.strftime('%Y-%m-%d') if birth_date else None,
-                        'hire_date': hire_date.strftime('%Y-%m-%d'),
+                        'hire_date': hire_date.strftime('%Y-%m-%d') if hire_date else None,
                         'invalidity': invalidity,
                         'children_under15': children,
                         'sole_caregiver': sole_caregiver,
                         'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
                         'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None,
-                        'previous_experience_days': total_days
+                        'previous_experience_days': total_days,
+                        'training_start_date': date.today().strftime('%Y-%m-%d')
                     }
                     
                     if selected_employee:
@@ -617,7 +618,7 @@ def main():
                         st.success("✅ Zaposlenik uspješno dodan!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Greška: {str(e)}")
+                    st.error(f"❌ Greška prilikom dodavanja: {str(e)}")
 
     elif choice == "Pregled zaposlenika":
         rows = []
