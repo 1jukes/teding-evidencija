@@ -148,12 +148,12 @@ def add_employee(data):
                      (name, oib, address, birth_date, hire_date,
                       next_physical_date, next_psych_date,
                       invalidity, children_under15, sole_caregiver,
-                      previous_experience_days)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      previous_experience_days, training_start_date)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                  (data['name'], data['oib'], data['address'], data['birth_date'],
                   data['hire_date'], data['next_physical_date'], data['next_psych_date'],
                   data['invalidity'], data['children_under15'], data['sole_caregiver'],
-                  data['previous_experience_days']))
+                  data['previous_experience_days'], data['training_start_date']))
         conn.commit()
         return c.lastrowid
     except Exception as e:
