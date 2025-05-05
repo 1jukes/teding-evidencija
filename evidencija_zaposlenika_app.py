@@ -91,9 +91,8 @@ def backup_db():
 # backup_db()  # Otkomeniraj ako želiš automatski backup na svakom pokretanju
 
 # 3. Inicijalizacija baze
-
 def init_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10)
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS employees (
@@ -142,26 +141,35 @@ def init_db():
         )
     ''')
     conn.commit()
-    return conn, c
+    conn.close()
 
-conn, c = init_db()
+init_db()
 
 # 4. Prikaži putanju do baze na vrhu aplikacije
 st.write("Putanja do baze:", DB_PATH)
 
 # CRUD funkcije
 def get_employees():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     c.execute('SELECT * FROM employees')
     cols = [d[0] for d in c.description]
-    return [dict(zip(cols, row)) for row in c.fetchall()]
+    result = [dict(zip(cols, row)) for row in c.fetchall()]
+    conn.close()
+    return result
 
 def get_leave_records(emp_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     c.execute('SELECT id, start_date, end_date, days_adjustment, note FROM leave_records WHERE emp_id=?', (emp_id,))
-    return [{'id': r[0], 'start': format_date(r[1]), 'end': format_date(r[2]), 
-             'adjustment': r[3], 'note': r[4]} for r in c.fetchall()]
+    result = [{'id': r[0], 'start': format_date(r[1]), 'end': format_date(r[2]), 
+               'adjustment': r[3], 'note': r[4]} for r in c.fetchall()]
+    conn.close()
+    return result
 
 def add_employee(data):
-    global conn, c
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     c.execute('''INSERT INTO employees 
                  (name, oib, address, birth_date, hire_date,
                   next_physical_date, next_psych_date,
@@ -173,9 +181,11 @@ def add_employee(data):
               data['invalidity'], data['children_under15'], data['sole_caregiver'],
               data['previous_experience_days']))
     conn.commit()
+    conn.close()
 
 def edit_employee(emp_id, data):
-    global conn, c
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     c.execute('''UPDATE employees 
                  SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
                      next_physical_date=?, next_psych_date=?,
@@ -187,34 +197,42 @@ def edit_employee(emp_id, data):
               data['invalidity'], data['children_under15'], data['sole_caregiver'],
               data['previous_experience_days'], emp_id))
     conn.commit()
+    conn.close()
 
 def add_leave_record(emp_id, s, e):
-    global conn, c
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     c.execute('INSERT INTO leave_records (emp_id, start_date, end_date) VALUES (?, ?, ?)',
               (emp_id, s, e))
     conn.commit()
+    conn.close()
 
 def add_days_adjustment(emp_id, days, operation='add', note=None):
-    global conn, c
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     days_value = days if operation == 'add' else -days
     today = date.today().strftime('%Y-%m-%d')
     c.execute('INSERT INTO leave_records(emp_id,start_date,end_date,days_adjustment,note) VALUES (?,?,?,?,?)',
               (emp_id, today, today, days_value, note))
     conn.commit()
+    conn.close()
 
 def delete_leave_record(emp_id, record_id):
-    global conn, c
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     c.execute('DELETE FROM leave_records WHERE emp_id=? AND id=?', (emp_id, record_id))
     conn.commit()
+    conn.close()
 
 # Dodajemo novu funkciju za brisanje zaposlenika
 def delete_employee(emp_id):
     try:
-        # Prvo brišemo sve zapise o godišnjem odmoru
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
         c.execute('DELETE FROM leave_records WHERE emp_id=?', (emp_id,))
-        # Zatim brišemo zaposlenika
         c.execute('DELETE FROM employees WHERE id=?', (emp_id,))
         conn.commit()
+        conn.close()
         return True
     except Exception as e:
         st.error(f"❌ Greška prilikom brisanja: {str(e)}")
