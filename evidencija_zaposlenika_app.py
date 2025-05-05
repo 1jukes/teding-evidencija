@@ -8,6 +8,7 @@ import base64
 import time
 import os
 import shutil
+import io
 
 # Konfiguracija stranice
 st.set_page_config(
@@ -331,6 +332,14 @@ def main():
         return
     
     st.title("Teding - Evidencija zaposlenika")
+    
+    # Upload baze
+    uploaded_db = st.file_uploader("Učitaj postojeću bazu (employees.db)", type=["db"])
+    if uploaded_db is not None:
+        # Spremi uploadanu bazu preko postojeće
+        with open(DB_PATH, "wb") as f:
+            f.write(uploaded_db.read())
+        st.success("Baza je uspješno učitana! Osvježi stranicu (Ctrl+R/F5).")
     
     # Dodaj download gumb odmah ispod naslova
     with open(DB_PATH, "rb") as f:
