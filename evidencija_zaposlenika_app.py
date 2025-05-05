@@ -7,6 +7,7 @@ import hashlib
 import base64
 import time
 import os
+import shutil
 
 # Konfiguracija stranice
 st.set_page_config(
@@ -45,8 +46,8 @@ def parse_date(date_str):
             try:
                 # Ako je već u YYYY-MM-DD formatu
                 return datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y-%m-%d')
-            except:
-                return date_str
+    except:
+        return date_str
 
 # Funkcija za provjeru lozinke
 def check_password():
@@ -77,9 +78,22 @@ def check_password():
 
     return True
 
-# Database connection
+# 1. Postavi bazu u isti folder kao aplikacija
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "employees.db")
+
+# 2. Automatski backup baze (opcionalno, možeš pozvati ručno ili automatski)
+def backup_db():
+    backup_name = os.path.join(BASE_DIR, f"employees_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+    if os.path.exists(DB_PATH):
+        shutil.copyfile(DB_PATH, backup_name)
+
+# backup_db()  # Otkomeniraj ako želiš automatski backup na svakom pokretanju
+
+# 3. Inicijalizacija baze
+
 def init_db():
-    conn = sqlite3.connect('employees.db', check_same_thread=False, timeout=10)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS employees (
@@ -130,10 +144,10 @@ def init_db():
     conn.commit()
     return conn, c
 
-# Inicijalizacija baze na početku aplikacije
 conn, c = init_db()
 
-st.write("Putanja do baze:", os.path.abspath("employees.db"))
+# 4. Prikaži putanju do baze na vrhu aplikacije
+st.write("Putanja do baze:", DB_PATH)
 
 # CRUD funkcije
 def get_employees():
@@ -297,7 +311,7 @@ def parse_date_for_sort(date_str):
 def main():
     if not check_password():
         return
-
+    
     st.title("Teding - Evidencija zaposlenika")
     
     # Glavni izbornik
@@ -413,12 +427,12 @@ def main():
                                 
                                 add_leave_record(emp['id'], start_str, end_str)
                                 st.success("✅ Godišnji uspješno dodan!")
-                                st.rerun()
+                    st.rerun()
                             except Exception as e:
                                 st.error(f"❌ Greška pri spremanju: {str(e)}")
                         else:
                             st.error("❌ Datum početka mora biti prije ili jednak datumu završetka!")
-                    else:
+                else:
                         st.error("❌ Molimo unesite oba datuma!")
             except Exception as e:
                 st.error(f"❌ Greška pri unosu datuma: {str(e)}")
@@ -454,7 +468,7 @@ def main():
         emp = next(emp for emp in employees if emp['name'] == selected)
         
         st.markdown("### Podaci o zaposleniku")
-        col1, col2 = st.columns(2)
+            col1, col2 = st.columns(2)
         
         with col1:
             st.write(f"**Ime i prezime:** {emp['name']}")
