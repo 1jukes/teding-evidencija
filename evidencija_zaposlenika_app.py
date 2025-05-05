@@ -129,6 +129,7 @@ def init_db():
     conn.commit()
     return conn, c
 
+# Inicijalizacija baze na početku aplikacije
 conn, c = init_db()
 
 # CRUD funkcije
@@ -144,41 +145,31 @@ def get_leave_records(emp_id):
 
 def add_employee(data):
     global conn, c
-    try:
-        c.execute('''INSERT INTO employees 
-                     (name, oib, address, birth_date, hire_date,
-                      next_physical_date, next_psych_date,
-                      invalidity, children_under15, sole_caregiver,
-                      previous_experience_days)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                 (data['name'], data['oib'], data['address'], data['birth_date'],
-                  data['hire_date'], data['next_physical_date'], data['next_psych_date'],
-                  data['invalidity'], data['children_under15'], data['sole_caregiver'],
-                  data['previous_experience_days']))
-        conn.commit()
-        return c.lastrowid
-    except Exception as e:
-        st.error(f"Greška prilikom dodavanja: {str(e)}")
-        raise e
+    c.execute('''INSERT INTO employees 
+                 (name, oib, address, birth_date, hire_date,
+                  next_physical_date, next_psych_date,
+                  invalidity, children_under15, sole_caregiver,
+                  previous_experience_days)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+             (data['name'], data['oib'], data['address'], data['birth_date'],
+              data['hire_date'], data['next_physical_date'], data['next_psych_date'],
+              data['invalidity'], data['children_under15'], data['sole_caregiver'],
+              data['previous_experience_days']))
+    conn.commit()
 
 def edit_employee(emp_id, data):
     global conn, c
-    try:
-        c.execute('''UPDATE employees 
-                     SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
-                         next_physical_date=?, next_psych_date=?,
-                         invalidity=?, children_under15=?, sole_caregiver=?,
-                         previous_experience_days=?
-                     WHERE id=?''',
-                 (data['name'], data['oib'], data['address'], data['birth_date'],
-                  data['hire_date'], data['next_physical_date'], data['next_psych_date'],
-                  data['invalidity'], data['children_under15'], data['sole_caregiver'],
-                  data['previous_experience_days'], emp_id))
-        conn.commit()
-        return True
-    except Exception as e:
-        st.error(f"Greška prilikom ažuriranja: {str(e)}")
-        raise e
+    c.execute('''UPDATE employees 
+                 SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
+                     next_physical_date=?, next_psych_date=?,
+                     invalidity=?, children_under15=?, sole_caregiver=?,
+                     previous_experience_days=?
+                 WHERE id=?''',
+             (data['name'], data['oib'], data['address'], data['birth_date'],
+              data['hire_date'], data['next_physical_date'], data['next_psych_date'],
+              data['invalidity'], data['children_under15'], data['sole_caregiver'],
+              data['previous_experience_days'], emp_id))
+    conn.commit()
 
 def add_leave_record(emp_id, s, e):
     global conn, c
@@ -196,13 +187,8 @@ def add_days_adjustment(emp_id, days, operation='add', note=None):
 
 def delete_leave_record(emp_id, record_id):
     global conn, c
-    try:
-        c.execute('DELETE FROM leave_records WHERE emp_id=? AND id=?', (emp_id, record_id))
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"Error deleting record: {e}")
-        return False
+    c.execute('DELETE FROM leave_records WHERE emp_id=? AND id=?', (emp_id, record_id))
+    conn.commit()
 
 # Dodajemo novu funkciju za brisanje zaposlenika
 def delete_employee(emp_id):
