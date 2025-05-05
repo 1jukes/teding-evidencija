@@ -336,12 +336,11 @@ def main():
     # Upload baze
     uploaded_db = st.file_uploader("Učitaj postojeću bazu (employees.db)", type=["db"])
     if uploaded_db is not None:
-        # Spremi uploadanu bazu preko postojeće
         with open(DB_PATH, "wb") as f:
             f.write(uploaded_db.read())
         st.success("Baza je uspješno učitana! Osvježi stranicu (Ctrl+R/F5).")
     
-    # Dodaj download gumb odmah ispod naslova
+    # Download gumb
     with open(DB_PATH, "rb") as f:
         st.download_button(
             label="⬇️ Preuzmi bazu (employees.db)",
