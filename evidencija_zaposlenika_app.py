@@ -466,7 +466,7 @@ def main():
         emp = next(emp for emp in employees if emp['name'] == selected)
         
         st.markdown("### Podaci o zaposleniku")
-            col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
         
         with col1:
             st.write(f"**Ime i prezime:** {emp['name']}")
