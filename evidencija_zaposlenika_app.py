@@ -143,6 +143,7 @@ def get_leave_records(emp_id):
              'adjustment': r[3], 'note': r[4]} for r in c.fetchall()]
 
 def add_employee(data):
+    global conn, c
     try:
         c.execute('''INSERT INTO employees 
                      (name, oib, address, birth_date, hire_date,
@@ -161,6 +162,7 @@ def add_employee(data):
         raise e
 
 def edit_employee(emp_id, data):
+    global conn, c
     try:
         c.execute('''UPDATE employees 
                      SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
@@ -179,18 +181,21 @@ def edit_employee(emp_id, data):
         raise e
 
 def add_leave_record(emp_id, s, e):
+    global conn, c
     c.execute('INSERT INTO leave_records (emp_id, start_date, end_date) VALUES (?, ?, ?)',
               (emp_id, s, e))
     conn.commit()
 
 def add_days_adjustment(emp_id, days, operation='add', note=None):
-    days_value = days if operation == 'add' else -days  # Ispravljena logika
+    global conn, c
+    days_value = days if operation == 'add' else -days
     today = date.today().strftime('%Y-%m-%d')
     c.execute('INSERT INTO leave_records(emp_id,start_date,end_date,days_adjustment,note) VALUES (?,?,?,?,?)',
               (emp_id, today, today, days_value, note))
     conn.commit()
 
 def delete_leave_record(emp_id, record_id):
+    global conn, c
     try:
         c.execute('DELETE FROM leave_records WHERE emp_id=? AND id=?', (emp_id, record_id))
         conn.commit()
