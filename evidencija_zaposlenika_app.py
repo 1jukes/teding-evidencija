@@ -424,15 +424,13 @@ def main():
                                 # Pretvaranje datuma u string format za bazu
                                 start_str = start_date.strftime('%Y-%m-%d')
                                 end_str = end_date.strftime('%Y-%m-%d')
-                                
                                 add_leave_record(emp['id'], start_str, end_str)
                                 st.success("✅ Godišnji uspješno dodan!")
-                    st.rerun()
                             except Exception as e:
                                 st.error(f"❌ Greška pri spremanju: {str(e)}")
                         else:
                             st.error("❌ Datum početka mora biti prije ili jednak datumu završetka!")
-                else:
+                    else:
                         st.error("❌ Molimo unesite oba datuma!")
             except Exception as e:
                 st.error(f"❌ Greška pri unosu datuma: {str(e)}")
@@ -675,7 +673,6 @@ def main():
                     else:
                         add_employee(data)
                         st.success("✅ Zaposlenik uspješno dodan!")
-                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Greška prilikom dodavanja: {str(e)}")
 
