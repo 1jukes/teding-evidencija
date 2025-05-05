@@ -46,8 +46,8 @@ def parse_date(date_str):
             try:
                 # Ako je već u YYYY-MM-DD formatu
                 return datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y-%m-%d')
-    except:
-        return date_str
+            except Exception:
+                return date_str
 
 # Funkcija za provjeru lozinke
 def check_password():
