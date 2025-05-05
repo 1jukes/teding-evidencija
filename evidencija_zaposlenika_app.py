@@ -332,6 +332,15 @@ def main():
     
     st.title("Teding - Evidencija zaposlenika")
     
+    # Dodaj download gumb odmah ispod naslova
+    with open(DB_PATH, "rb") as f:
+        st.download_button(
+            label="⬇️ Preuzmi bazu (employees.db)",
+            data=f,
+            file_name="employees.db",
+            mime="application/octet-stream"
+        )
+    
     # Glavni izbornik
     choice = st.sidebar.selectbox(
         "Izbornik",
