@@ -733,28 +733,17 @@ def main():
 
         df = pd.DataFrame(rows)
 
-        # Debug ispis (možeš maknuti kad sve proradi)
-        st.write("Stupci u df:", df.columns.tolist())
-        st.write("Broj redova:", len(df))
-
         if df.empty:
             st.warning("Nema zaposlenika u bazi!")
         else:
-            # Prikaz tablice samo ako postoje svi potrebni stupci
-            expected_cols = [
-                "Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-                "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"
-            ]
-            missing_cols = [col for col in expected_cols if col not in df.columns]
-            if missing_cols:
-                st.error(f"Nedostaju stupci u tablici: {missing_cols}")
-                st.write(df)
-            else:
-                st.dataframe(
-                    df[expected_cols].reset_index(drop=True),
-                    use_container_width=True,
-                    height=800
-                )
+            st.dataframe(
+                df[
+                    ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
+                     "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"]
+                ].reset_index(drop=True),
+                use_container_width=True,
+                height=800
+            )
 
 if __name__=='__main__':
     main()
