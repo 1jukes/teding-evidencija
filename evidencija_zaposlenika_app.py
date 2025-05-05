@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 import hashlib
 import base64
 import time
+import os
 
 # Konfiguracija stranice
 st.set_page_config(
@@ -131,6 +132,8 @@ def init_db():
 
 # Inicijalizacija baze na početku aplikacije
 conn, c = init_db()
+
+st.write("Putanja do baze:", os.path.abspath("employees.db"))
 
 # CRUD funkcije
 def get_employees():
