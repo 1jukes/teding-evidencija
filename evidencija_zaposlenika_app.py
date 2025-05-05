@@ -148,12 +148,12 @@ def add_employee(data):
                      (name, oib, address, birth_date, hire_date,
                       next_physical_date, next_psych_date,
                       invalidity, children_under15, sole_caregiver,
-                      previous_experience_days, training_start_date)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      previous_experience_days)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                  (data['name'], data['oib'], data['address'], data['birth_date'],
                   data['hire_date'], data['next_physical_date'], data['next_psych_date'],
                   data['invalidity'], data['children_under15'], data['sole_caregiver'],
-                  data['previous_experience_days'], data['training_start_date']))
+                  data['previous_experience_days']))
         conn.commit()
         return c.lastrowid
     except Exception as e:
@@ -658,8 +658,7 @@ def main():
                         'sole_caregiver': sole_caregiver,
                         'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
                         'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None,
-                        'previous_experience_days': (years or 0) * 365 + (months or 0) * 30 + (days or 0),
-                        'training_start_date': date.today().strftime('%Y-%m-%d')
+                        'previous_experience_days': (years or 0) * 365 + (months or 0) * 30 + (days or 0)
                     }
                     
                     if selected_employee:
