@@ -307,7 +307,7 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
     # Djeca i samohrani roditelj
     if sole:
         days += 3
-    elif children == 1:
+    if children == 1:
         days += 1
     elif children >= 2:
         days += 2
@@ -765,7 +765,7 @@ def main():
                 'Staž prije': staz_prije_str,
                 'Staž kod nas': staz_kod_nas_str,
                 'Ukupni staž': ukupni_staz_str,
-                'Godišnji (dana)': leave,
+                'Godišnji prema pravilniku (dana)': leave,
                 'Preostalo godišnji': rem,
                 'Sljedeći fiz. pregled': fiz_pregled_sort,
                 'Sljedeći psih. pregled': psih_pregled_sort
@@ -779,7 +779,7 @@ def main():
             st.dataframe(
                 df[
                     ["Ime", "Datum zapos.", "Staž prije", "Staž kod nas", "Ukupni staž",
-                     "Godišnji (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"]
+                     "Godišnji prema pravilniku (dana)", "Preostalo godišnji", "Sljedeći fiz. pregled", "Sljedeći psih. pregled"]
                 ].reset_index(drop=True),
                 use_container_width=True,
                 height=800
