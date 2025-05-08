@@ -383,7 +383,7 @@ def main():
         
         remaining_days = leave_days - used_days
         
-        st.write(f"**Ukupno dana godišnjeg:** {leave_days}")
+        st.write(f"**Godišnji prema pravilniku (dana):** {leave_days}")
         st.write(f"**Preostalo dana:** {remaining_days}")
 
         # Povijest promjena (samo za dodavanje/oduzimanje dana)
@@ -564,7 +564,7 @@ def main():
         
         remaining_days = leave_days - used_days
         
-        st.write(f"**Godišnji (prema pravilniku):** {leave_days} dana")
+        st.write(f"**Godišnji prema pravilniku (dana):** {leave_days}")
         st.write(f"**Preostali godišnji:** {remaining_days} dana")
 
         # Dodajemo gumb za brisanje na dnu
