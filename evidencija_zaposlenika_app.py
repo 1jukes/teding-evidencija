@@ -132,6 +132,14 @@ def init_db():
         c.execute('ALTER TABLE employees ADD COLUMN previous_experience_days INTEGER NOT NULL DEFAULT 0')
     except:
         pass
+    try:
+        c.execute('ALTER TABLE employees ADD COLUMN job_role_voditelj_odjela INTEGER NOT NULL DEFAULT 0')
+    except:
+        pass
+    try:
+        c.execute('ALTER TABLE employees ADD COLUMN job_role_voditelj_grupe INTEGER NOT NULL DEFAULT 0')
+    except:
+        pass
     
     c.execute('''
         CREATE TABLE IF NOT EXISTS leave_records (
@@ -627,10 +635,8 @@ def main():
                 st.caption("Jedno dijete do 15 godina +1 dan, dvoje ili više djece mlađe od 15 godine +2 dana")
                 sole_caregiver = st.checkbox("Samohrani roditelj (+3 dana)", value=selected_employee['sole_caregiver'] if selected_employee else False)
                 st.markdown("### Složenost posla i radna odgovornost")
-                job_role = st.selectbox(
-                    "Radno mjesto",
-                    ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if not selected_employee or not selected_employee.get('job_role') else [selected_employee.get('job_role')] + [r for r in ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if r != selected_employee.get('job_role')]
-                )
+                job_role_voditelj_odjela = st.checkbox("Voditelj odjela i poslovnih jedinica (+2 dana)", value=selected_employee['job_role_voditelj_odjela'] if selected_employee and 'job_role_voditelj_odjela' in selected_employee else False)
+                job_role_voditelj_grupe = st.checkbox("Voditelj grupe i poslovođa (+1 dan)", value=selected_employee['job_role_voditelj_grupe'] if selected_employee and 'job_role_voditelj_grupe' in selected_employee else False)
                 st.markdown("### Lojalnost i Učinak")
                 loyalty = st.checkbox("Lojalnost (+1 dan)", value=selected_employee['loyalty'] if selected_employee and 'loyalty' in selected_employee else False)
                 performance = st.checkbox("Učinak (+1 dan)", value=selected_employee['performance'] if selected_employee and 'performance' in selected_employee else False)
@@ -711,7 +717,8 @@ def main():
                         'invalidity': invalidity,
                         'children_under15': children,
                         'sole_caregiver': sole_caregiver,
-                        'job_role': job_role,
+                        'job_role_voditelj_odjela': int(job_role_voditelj_odjela),
+                        'job_role_voditelj_grupe': int(job_role_voditelj_grupe),
                         'loyalty': int(loyalty),
                         'performance': int(performance),
                         'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
