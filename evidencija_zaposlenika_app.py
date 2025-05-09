@@ -109,7 +109,8 @@ def init_db():
             children_under15 INTEGER NOT NULL DEFAULT 0,
             sole_caregiver INTEGER NOT NULL DEFAULT 0,
             previous_experience_days INTEGER NOT NULL DEFAULT 0,
-            job_role TEXT,
+            job_role_voditelj_odjela INTEGER NOT NULL DEFAULT 0,
+            job_role_voditelj_grupe INTEGER NOT NULL DEFAULT 0,
             loyalty INTEGER NOT NULL DEFAULT 0,
             performance INTEGER NOT NULL DEFAULT 0
         )
@@ -186,12 +187,12 @@ def add_employee(data):
                  (name, oib, address, birth_date, hire_date,
                   next_physical_date, next_psych_date,
                   invalidity, children_under15, sole_caregiver,
-                  previous_experience_days, job_role, loyalty, performance)
+                  previous_experience_days, job_role_voditelj_odjela, job_role_voditelj_grupe, loyalty, performance)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
              (data['name'], data['oib'], data['address'], data['birth_date'],
               data['hire_date'], data['next_physical_date'], data['next_psych_date'],
               data['invalidity'], data['children_under15'], data['sole_caregiver'],
-              data['previous_experience_days'], data['job_role'], data['loyalty'], data['performance']))
+              data['previous_experience_days'], data['job_role_voditelj_odjela'], data['job_role_voditelj_grupe'], data['loyalty'], data['performance']))
     conn.commit()
     conn.close()
 
@@ -202,12 +203,12 @@ def edit_employee(emp_id, data):
                  SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
                      next_physical_date=?, next_psych_date=?,
                      invalidity=?, children_under15=?, sole_caregiver=?,
-                     previous_experience_days=?, job_role=?, loyalty=?, performance=?
+                     previous_experience_days=?, job_role_voditelj_odjela=?, job_role_voditelj_grupe=?, loyalty=?, performance=?
                  WHERE id=?''',
              (data['name'], data['oib'], data['address'], data['birth_date'],
               data['hire_date'], data['next_physical_date'], data['next_psych_date'],
               data['invalidity'], data['children_under15'], data['sole_caregiver'],
-              data['previous_experience_days'], data['job_role'], data['loyalty'], data['performance'], emp_id))
+              data['previous_experience_days'], data['job_role_voditelj_odjela'], data['job_role_voditelj_grupe'], data['loyalty'], data['performance'], emp_id))
     conn.commit()
     conn.close()
 
@@ -283,7 +284,7 @@ def format_rd(rd):
     if days: parts.append(f"{days}d")
     return ' '.join(parts) or '0d'
 
-def compute_leave(hire, invalidity, children, sole, previous_experience_days=0, job_role=None, loyalty=0, performance=0):
+def compute_leave(hire, invalidity, children, sole, previous_experience_days=0, job_role_voditelj_odjela=0, job_role_voditelj_grupe=0, loyalty=0, performance=0):
     """
     Računanje godišnjeg odmora prema pravilniku:
     - Osnovno: 20 dana
@@ -316,9 +317,9 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0, 
     if children >= 2:
         days += 2
     # Složenost posla
-    if job_role == "Voditelj odjela i poslovnih jedinica (+2 dana)":
+    if job_role_voditelj_odjela:
         days += 2
-    elif job_role == "Voditelj grupe i poslovođa (+1 dan)":
+    if job_role_voditelj_grupe:
         days += 1
     # Lojalnost i učinak
     if loyalty:
@@ -382,7 +383,8 @@ def main():
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'],
                                  emp.get('previous_experience_days', 0),
-                                 emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
+                                 emp.get('job_role_voditelj_odjela', 0), emp.get('job_role_voditelj_grupe', 0),
+                                 emp.get('loyalty', 0), emp.get('performance', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -528,9 +530,6 @@ def main():
             st.write("**Status invaliditeta:** ✅" if emp['invalidity'] else "**Status invaliditeta:** ❌")
             st.write(f"**Broj djece <15:** {emp['children_under15']}")
             st.write("**Samohrani roditelj:** ✅" if emp['sole_caregiver'] else "**Samohrani roditelj:** ❌")
-            st.write(f"**Radno mjesto:** {emp.get('job_role', 'Ostalo')}")
-            st.write("**Lojalnost:** ✅" if emp.get('loyalty', 0) else "**Lojalnost:** ❌")
-            st.write("**Učinak:** ✅" if emp.get('performance', 0) else "**Učinak:** ❌")
             st.write(f"**Fizički pregled:** {format_date(emp['next_physical_date']) or 'Nema pregleda'}")
             st.write(f"**Psihički pregled:** {format_date(emp['next_psych_date']) or 'Nema pregleda'}")
 
@@ -567,7 +566,8 @@ def main():
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'],
                                  emp.get('previous_experience_days', 0),
-                                 emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
+                                 emp.get('job_role_voditelj_odjela', 0), emp.get('job_role_voditelj_grupe', 0),
+                                 emp.get('loyalty', 0), emp.get('performance', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -763,7 +763,8 @@ def main():
 
             leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'],
                                   e.get('previous_experience_days', 0),
-                                  e.get('job_role'), e.get('loyalty', 0), e.get('performance', 0))
+                                  e.get('job_role_voditelj_odjela', 0), e.get('job_role_voditelj_grupe', 0),
+                                  e.get('loyalty', 0), e.get('performance', 0))
 
             # Računanje ukupno iskorištenih dana
             leave_records = get_leave_records(e['id'])
