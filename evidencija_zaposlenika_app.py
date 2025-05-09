@@ -520,6 +520,9 @@ def main():
             st.write("**Status invaliditeta:** ✅" if emp['invalidity'] else "**Status invaliditeta:** ❌")
             st.write(f"**Broj djece <15:** {emp['children_under15']}")
             st.write("**Samohrani roditelj:** ✅" if emp['sole_caregiver'] else "**Samohrani roditelj:** ❌")
+            st.write(f"**Radno mjesto:** {emp.get('job_role', 'Ostalo')}")
+            st.write("**Lojalnost:** ✅" if emp.get('loyalty', 0) else "**Lojalnost:** ❌")
+            st.write("**Učinak:** ✅" if emp.get('performance', 0) else "**Učinak:** ❌")
             st.write(f"**Fizički pregled:** {format_date(emp['next_physical_date']) or 'Nema pregleda'}")
             st.write(f"**Psihički pregled:** {format_date(emp['next_psych_date']) or 'Nema pregleda'}")
 
