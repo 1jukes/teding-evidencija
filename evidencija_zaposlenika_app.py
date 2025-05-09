@@ -373,7 +373,8 @@ def main():
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'],
-                                 emp.get('previous_experience_days', 0), emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
+                                 emp.get('previous_experience_days', 0),
+                                 emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -554,7 +555,8 @@ def main():
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'],
-                                 emp.get('previous_experience_days', 0), emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
+                                 emp.get('previous_experience_days', 0),
+                                 emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -757,7 +759,8 @@ def main():
             ukupni_staz_days = ukupni_staz.years * 365 + ukupni_staz.months * 30 + ukupni_staz.days
 
             leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'],
-                                  e.get('previous_experience_days', 0), e.get('job_role'), e.get('loyalty', 0), e.get('performance', 0))
+                                  e.get('previous_experience_days', 0),
+                                  e.get('job_role'), e.get('loyalty', 0), e.get('performance', 0))
 
             # Računanje ukupno iskorištenih dana
             leave_records = get_leave_records(e['id'])
