@@ -530,6 +530,10 @@ def main():
             st.write("**Status invaliditeta:** ✅" if emp['invalidity'] else "**Status invaliditeta:** ❌")
             st.write(f"**Broj djece <15:** {emp['children_under15']}")
             st.write("**Samohrani roditelj:** ✅" if emp['sole_caregiver'] else "**Samohrani roditelj:** ❌")
+            st.write("**Voditelj odjela i poslovnih jedinica:** ✅" if emp.get('job_role_voditelj_odjela', 0) else "**Voditelj odjela i poslovnih jedinica:** ❌")
+            st.write("**Voditelj grupe i poslovođa:** ✅" if emp.get('job_role_voditelj_grupe', 0) else "**Voditelj grupe i poslovođa:** ❌")
+            st.write("**Lojalnost:** ✅" if emp.get('loyalty', 0) else "**Lojalnost:** ❌")
+            st.write("**Učinak:** ✅" if emp.get('performance', 0) else "**Učinak:** ❌")
             st.write(f"**Fizički pregled:** {format_date(emp['next_physical_date']) or 'Nema pregleda'}")
             st.write(f"**Psihički pregled:** {format_date(emp['next_psych_date']) or 'Nema pregleda'}")
 
