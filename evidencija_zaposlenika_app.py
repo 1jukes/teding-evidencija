@@ -108,7 +108,10 @@ def init_db():
             invalidity INTEGER NOT NULL DEFAULT 0,
             children_under15 INTEGER NOT NULL DEFAULT 0,
             sole_caregiver INTEGER NOT NULL DEFAULT 0,
-            previous_experience_days INTEGER NOT NULL DEFAULT 0
+            previous_experience_days INTEGER NOT NULL DEFAULT 0,
+            job_role TEXT,
+            loyalty INTEGER NOT NULL DEFAULT 0,
+            performance INTEGER NOT NULL DEFAULT 0
         )
     ''')
     
@@ -175,12 +178,12 @@ def add_employee(data):
                  (name, oib, address, birth_date, hire_date,
                   next_physical_date, next_psych_date,
                   invalidity, children_under15, sole_caregiver,
-                  previous_experience_days)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  previous_experience_days, job_role, loyalty, performance)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
              (data['name'], data['oib'], data['address'], data['birth_date'],
               data['hire_date'], data['next_physical_date'], data['next_psych_date'],
               data['invalidity'], data['children_under15'], data['sole_caregiver'],
-              data['previous_experience_days']))
+              data['previous_experience_days'], data['job_role'], data['loyalty'], data['performance']))
     conn.commit()
     conn.close()
 
@@ -191,12 +194,12 @@ def edit_employee(emp_id, data):
                  SET name=?, oib=?, address=?, birth_date=?, hire_date=?,
                      next_physical_date=?, next_psych_date=?,
                      invalidity=?, children_under15=?, sole_caregiver=?,
-                     previous_experience_days=?
+                     previous_experience_days=?, job_role=?, loyalty=?, performance=?
                  WHERE id=?''',
              (data['name'], data['oib'], data['address'], data['birth_date'],
               data['hire_date'], data['next_physical_date'], data['next_psych_date'],
               data['invalidity'], data['children_under15'], data['sole_caregiver'],
-              data['previous_experience_days'], emp_id))
+              data['previous_experience_days'], data['job_role'], data['loyalty'], data['performance'], emp_id))
     conn.commit()
     conn.close()
 
@@ -272,7 +275,7 @@ def format_rd(rd):
     if days: parts.append(f"{days}d")
     return ' '.join(parts) or '0d'
 
-def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
+def compute_leave(hire, invalidity, children, sole, previous_experience_days=0, job_role=None, loyalty=0, performance=0):
     """
     Računanje godišnjeg odmora prema pravilniku:
     - Osnovno: 20 dana
@@ -280,38 +283,40 @@ def compute_leave(hire, invalidity, children, sole, previous_experience_days=0):
     - Samohrani roditelj: +3 dana
     - Djeca: 1 dijete = +1 dan, 2 ili više = +2 dana
     - Ukupni radni staž: 10-20g = +1 dan, 20-30g = +2 dana, 30+ = +3 dana
+    - Voditelj odjela i poslovnih jedinica: +2 dana
+    - Voditelj grupe i poslovođa: +1 dan
+    - Lojalnost: +1 dan
+    - Učinak: +1 dan
     """
-    # Staž kod trenutnog poslodavca
     staz_kod_nas = relativedelta(date.today(), datetime.strptime(hire, '%Y-%m-%d').date())
     staz_kod_nas_days = staz_kod_nas.years * 365 + staz_kod_nas.months * 30 + staz_kod_nas.days
-
-    # Ukupni radni staž u danima
     ukupni_staz_dani = previous_experience_days + staz_kod_nas_days
     ukupni_staz_godina = ukupni_staz_dani // 365
-
-    # Osnovno
     days = 20
-
-    # Invaliditet
     if invalidity:
         days += 5
-
-    # Staž (ukupni)
     if 10 <= ukupni_staz_godina < 20:
         days += 1
     elif 20 <= ukupni_staz_godina < 30:
         days += 2
     elif ukupni_staz_godina >= 30:
         days += 3
-
-    # Djeca i samohrani roditelj
     if sole:
         days += 3
     if children == 1:
         days += 1
-    elif children >= 2:
+    if children >= 2:
         days += 2
-
+    # Složenost posla
+    if job_role == "Voditelj odjela i poslovnih jedinica (+2 dana)":
+        days += 2
+    elif job_role == "Voditelj grupe i poslovođa (+1 dan)":
+        days += 1
+    # Lojalnost i učinak
+    if loyalty:
+        days += 1
+    if performance:
+        days += 1
     return days
 
 def parse_date_for_sort(date_str):
@@ -368,7 +373,7 @@ def main():
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'],
-                                 emp.get('previous_experience_days', 0))
+                                 emp.get('previous_experience_days', 0), emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -549,7 +554,7 @@ def main():
         st.markdown("### Godišnji odmor")
         leave_days = compute_leave(emp['hire_date'], emp['invalidity'], 
                                  emp['children_under15'], emp['sole_caregiver'],
-                                 emp.get('previous_experience_days', 0))
+                                 emp.get('previous_experience_days', 0), emp.get('job_role'), emp.get('loyalty', 0), emp.get('performance', 0))
         
         # Računanje iskorištenih dana
         leave_records = get_leave_records(emp['id'])
@@ -614,13 +619,24 @@ def main():
                 )
             
             with col2:
-                invalidity = st.checkbox("Status invaliditeta", 
-                    value=selected_employee['invalidity'] if selected_employee else False)
-                children = st.number_input("Broj djece mlađe od 15 godina", 
-                    min_value=0, value=selected_employee['children_under15'] if selected_employee else 0)
-                sole_caregiver = st.checkbox("Samohrani roditelj", 
-                    value=selected_employee['sole_caregiver'] if selected_employee else False)
+                invalidity = st.checkbox("Status invaliditeta (+5 dana)", value=selected_employee['invalidity'] if selected_employee else False)
+                children = st.number_input("Broj djece mlađe od 15 godina", min_value=0, value=selected_employee['children_under15'] if selected_employee else 0)
+                sole_caregiver = st.checkbox("Samohrani roditelj (+3 dana)", value=selected_employee['sole_caregiver'] if selected_employee else False)
             
+            st.caption("Jedno dijete do 15 godina +1 dan, dvoje ili više djece mlađe od 15 godine +2 dana")
+
+            # Složenost posla i radna odgovornost
+            st.markdown("### Složenost posla i radna odgovornost")
+            job_role = st.selectbox(
+                "Radno mjesto",
+                ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if not selected_employee or not selected_employee.get('job_role') else [selected_employee.get('job_role')] + [r for r in ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if r != selected_employee.get('job_role')]
+            )
+
+            # Lojalnost i Učinak
+            st.markdown("### Lojalnost i Učinak")
+            loyalty = st.checkbox("Lojalnost (+1 dan)", value=selected_employee['loyalty'] if selected_employee and 'loyalty' in selected_employee else False)
+            performance = st.checkbox("Učinak (+1 dan)", value=selected_employee['performance'] if selected_employee and 'performance' in selected_employee else False)
+
             # Pregledi
             st.markdown("### Pregledi")
             col1, col2 = st.columns(2)
@@ -697,6 +713,9 @@ def main():
                         'invalidity': invalidity,
                         'children_under15': children,
                         'sole_caregiver': sole_caregiver,
+                        'job_role': job_role,
+                        'loyalty': int(loyalty),
+                        'performance': int(performance),
                         'next_physical_date': next_physical.strftime('%Y-%m-%d') if next_physical else None,
                         'next_psych_date': next_psych.strftime('%Y-%m-%d') if next_psych else None,
                         'previous_experience_days': (years or 0) * 365 + (months or 0) * 30 + (days or 0)
@@ -738,7 +757,7 @@ def main():
             ukupni_staz_days = ukupni_staz.years * 365 + ukupni_staz.months * 30 + ukupni_staz.days
 
             leave = compute_leave(e['hire_date'], e['invalidity'], e['children_under15'], e['sole_caregiver'],
-                                  e.get('previous_experience_days', 0))
+                                  e.get('previous_experience_days', 0), e.get('job_role'), e.get('loyalty', 0), e.get('performance', 0))
 
             # Računanje ukupno iskorištenih dana
             leave_records = get_leave_records(e['id'])
