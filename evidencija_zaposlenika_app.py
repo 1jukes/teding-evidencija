@@ -603,7 +603,6 @@ def main():
                 name = st.text_input("Ime i prezime", value=selected_employee['name'] if selected_employee else "")
                 oib = st.text_input("OIB", value=selected_employee['oib'] if selected_employee else "")
                 address = st.text_input("Adresa", value=selected_employee['address'] if selected_employee else "")
-                
                 birth_date = st.date_input(
                     "Datum rođenja",
                     value=None if not selected_employee or not selected_employee['birth_date'] 
@@ -611,7 +610,6 @@ def main():
                     min_value=date(1950, 1, 1),
                     format="DD/MM/YYYY"
                 )
-                
                 hire_date = st.date_input(
                     "Datum zaposlenja",
                     value=date.today() if not selected_employee 
@@ -619,25 +617,20 @@ def main():
                     min_value=date(1950, 1, 1),
                     format="DD/MM/YYYY"
                 )
-            
             with col2:
+                st.markdown("### Socijalni uvjeti radnika")
                 invalidity = st.checkbox("Status invaliditeta (+5 dana)", value=selected_employee['invalidity'] if selected_employee else False)
                 children = st.number_input("Broj djece mlađe od 15 godina", min_value=0, value=selected_employee['children_under15'] if selected_employee else 0)
+                st.caption("Jedno dijete do 15 godina +1 dan, dvoje ili više djece mlađe od 15 godine +2 dana")
                 sole_caregiver = st.checkbox("Samohrani roditelj (+3 dana)", value=selected_employee['sole_caregiver'] if selected_employee else False)
-            
-            st.caption("Jedno dijete do 15 godina +1 dan, dvoje ili više djece mlađe od 15 godine +2 dana")
-
-            # Složenost posla i radna odgovornost
-            st.markdown("### Složenost posla i radna odgovornost")
-            job_role = st.selectbox(
-                "Radno mjesto",
-                ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if not selected_employee or not selected_employee.get('job_role') else [selected_employee.get('job_role')] + [r for r in ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if r != selected_employee.get('job_role')]
-            )
-
-            # Lojalnost i Učinak
-            st.markdown("### Lojalnost i Učinak")
-            loyalty = st.checkbox("Lojalnost (+1 dan)", value=selected_employee['loyalty'] if selected_employee and 'loyalty' in selected_employee else False)
-            performance = st.checkbox("Učinak (+1 dan)", value=selected_employee['performance'] if selected_employee and 'performance' in selected_employee else False)
+                st.markdown("### Složenost posla i radna odgovornost")
+                job_role = st.selectbox(
+                    "Radno mjesto",
+                    ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if not selected_employee or not selected_employee.get('job_role') else [selected_employee.get('job_role')] + [r for r in ["Ostalo", "Voditelj odjela i poslovnih jedinica (+2 dana)", "Voditelj grupe i poslovođa (+1 dan)"] if r != selected_employee.get('job_role')]
+                )
+                st.markdown("### Lojalnost i Učinak")
+                loyalty = st.checkbox("Lojalnost (+1 dan)", value=selected_employee['loyalty'] if selected_employee and 'loyalty' in selected_employee else False)
+                performance = st.checkbox("Učinak (+1 dan)", value=selected_employee['performance'] if selected_employee and 'performance' in selected_employee else False)
 
             # Pregledi
             st.markdown("### Pregledi")
